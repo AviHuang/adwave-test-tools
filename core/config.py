@@ -68,18 +68,10 @@ class Config:
     ) -> LLMConfig:
         """Initialize LLM configuration based on available API keys."""
 
-        # OpenAI-compatible: check OPENAI_API_KEY first, then DEEPSEEK_API_KEY
+        # OpenAI-compatible API
         openai_api_key = os.getenv("OPENAI_API_KEY")
-        openai_base_url = os.getenv("OPENAI_BASE_URL")  # Custom base URL
-
-        # DeepSeek uses OpenAI-compatible format
-        if not openai_api_key:
-            deepseek_key = os.getenv("DEEPSEEK_API_KEY")
-            if deepseek_key:
-                openai_api_key = deepseek_key
-                openai_base_url = "https://api.deepseek.com"
-                if model is None:
-                    model = "deepseek-chat"
+        openai_base_url = os.getenv("OPENAI_BASE_URL")
+        openai_model = os.getenv("OPENAI_MODEL")
 
         # API keys for each provider
         api_keys = {
@@ -98,16 +90,19 @@ class Config:
         if provider is None:
             raise ValueError(
                 "No LLM API key found. Set one of: "
-                "OPENAI_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY"
+                "OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY"
             )
 
         api_key = api_keys.get(provider)
         if not api_key:
             raise ValueError(f"API key not found for provider: {provider}")
 
-        # Use default model if not specified
+        # Determine model (priority: parameter > env var > default)
         if model is None:
-            model = self.DEFAULT_MODELS.get(provider, "gpt-4o")
+            if provider == "openai" and openai_model:
+                model = openai_model
+            else:
+                model = self.DEFAULT_MODELS.get(provider, "gpt-4o")
 
         # Set base_url for OpenAI-compatible providers
         base_url = openai_base_url if provider == "openai" else None
