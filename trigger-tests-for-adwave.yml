@@ -1,0 +1,25 @@
+# This workflow should be added to the AdWave main repository
+# at .github/workflows/trigger-tests.yml
+#
+# Prerequisites:
+# 1. Create a Personal Access Token (PAT) with 'repo' scope
+# 2. Add it as a secret named TEST_DISPATCH_TOKEN in AdWave repo
+# 3. Update the 'repository' value below to your test repo's full name
+
+name: Trigger E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  trigger-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger AdWave test repository
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.TEST_DISPATCH_TOKEN }}
+          repository: your-org/adwave-test-tools  # Update this!
+          event-type: adwave-deploy
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "environment": "production"}'
