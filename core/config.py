@@ -73,11 +73,11 @@ class Config:
         openai_base_url = os.getenv("OPENAI_BASE_URL")
         openai_model = os.getenv("OPENAI_MODEL")
 
-        # API keys for each provider
+        # API keys for each provider (GOOGLE_API_KEY is the new standard for Gemini)
         api_keys = {
             "openai": openai_api_key,
             "claude": os.getenv("ANTHROPIC_API_KEY"),
-            "gemini": os.getenv("GEMINI_API_KEY"),
+            "gemini": os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"),
         }
 
         # Auto-detect provider if not specified
@@ -90,7 +90,7 @@ class Config:
         if provider is None:
             raise ValueError(
                 "No LLM API key found. Set one of: "
-                "OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY"
+                "OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY"
             )
 
         api_key = api_keys.get(provider)
@@ -101,6 +101,8 @@ class Config:
         if model is None:
             if provider == "openai" and openai_model:
                 model = openai_model
+            elif provider == "gemini" and os.getenv("GEMINI_MODEL"):
+                model = os.getenv("GEMINI_MODEL")
             else:
                 model = self.DEFAULT_MODELS.get(provider, "gpt-4o")
 
@@ -133,6 +135,10 @@ class Config:
     @property
     def audience_url(self) -> str:
         return f"{self.base_url}/audience"
+
+    @property
+    def create_campaign_url(self) -> str:
+        return f"{self.base_url}/campaign/create"
 
     @property
     def credentials(self) -> dict:
