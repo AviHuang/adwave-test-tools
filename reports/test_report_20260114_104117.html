@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdWave Test Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: #24292e;
+            line-height: 1.6;
+            background: #fff;
+        }
+        h1 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+        h2 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 8px;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+        }
+        th, td {
+            border: 1px solid #dfe2e5;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background: #f6f8fa;
+            font-weight: 600;
+        }
+        code {
+            background: #f6f8fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .duration {
+            color: #6a737d;
+            font-size: 0.85em;
+        }
+        .error {
+            color: #cb2431;
+            margin: 4px 0 4px 24px;
+            font-size: 0.9em;
+        }
+        .module {
+            margin-bottom: 20px;
+        }
+        details {
+            margin: 8px 0 8px 24px;
+        }
+        summary {
+            cursor: pointer;
+            color: #0366d6;
+            font-size: 0.9em;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 8px;
+            border: 1px solid #dfe2e5;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #eaecef;
+            margin: 24px 0;
+        }
+        .footer {
+            color: #6a737d;
+            font-size: 0.85em;
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid #eaecef;
+        }
+    </style>
+</head>
+<body>
+    <h1>AdWave Test Report</h1>
+
+    <h2>Summary</h2>
+    <table>
+        <tr>
+            <th>Environment</th>
+            <th>LLM</th>
+            <th>Time</th>
+            <th>Duration</th>
+        </tr>
+        <tr>
+            <td>production</td>
+            <td>gemini / gemini-2.5-flash-lite</td>
+            <td>2026-01-14 10:36:54</td>
+            <td>220.8s</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <th>Total</th>
+            <th>Passed</th>
+            <th>Failed</th>
+            <th>Pass Rate</th>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>🟢 4</td>
+            <td>🔴 1</td>
+            <td>80.0%</td>
+        </tr>
+    </table>
+
+    <h2>Test Results</h2>
+    
+            <div class="module">
+                <h3>🟢 test_analytics</h3>
+                <ul>
+            
+                    <li>
+                        🟢 <code>test_analytics_page</code> <span class="duration">(45.8s)</span>
+                        
+                        
+                    </li>
+                
+                </ul>
+            </div>
+            
+            <div class="module">
+                <h3>🔴 test_audience</h3>
+                <ul>
+            
+                    <li>
+                        🔴 <code>test_audience_page</code> <span class="duration">(61.6s)</span>
+                        <p class="error">Test verification failed - expected elements or conditions were not met on the page.</p>
+                        
+                    </li>
+                
+                </ul>
+            </div>
+            
+            <div class="module">
+                <h3>🟢 test_campaign</h3>
+                <ul>
+            
+                    <li>
+                        🟢 <code>test_campaign_page</code> <span class="duration">(45.8s)</span>
+                        
+                        
+                    </li>
+                
+                </ul>
+            </div>
+            
+            <div class="module">
+                <h3>🟢 test_creative</h3>
+                <ul>
+            
+                    <li>
+                        🟢 <code>test_creative_page</code> <span class="duration">(42.5s)</span>
+                        
+                        
+                    </li>
+                
+                </ul>
+            </div>
+            
+            <div class="module">
+                <h3>🟢 test_login</h3>
+                <ul>
+            
+                    <li>
+                        🟢 <code>test_login</code> <span class="duration">(25.1s)</span>
+                        
+                        
+                    </li>
+                
+                </ul>
+            </div>
+            
+
+    <hr>
+    <div class="footer">
+        Generated by AdWave Test Tools | 2026-01-14 10:41:17
+    </div>
+</body>
+</html>

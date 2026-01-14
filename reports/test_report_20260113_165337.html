@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdWave Test Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .meta-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .summary-card.total { border-top: 4px solid #667eea; }
+        .summary-card.passed { border-top: 4px solid #4caf50; }
+        .summary-card.failed { border-top: 4px solid #f44336; }
+        .summary-card.rate { border-top: 4px solid #ff9800; }
+        .summary-card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        .summary-card .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .test-results {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-results h2 {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .test-result {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .test-result:last-child {
+            border-bottom: none;
+        }
+        .test-result.passed {
+            border-left: 4px solid #4caf50;
+        }
+        .test-result.failed {
+            border-left: 4px solid #f44336;
+        }
+        .test-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .status-icon {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .test-result.passed .status-icon { color: #4caf50; }
+        .test-result.failed .status-icon { color: #f44336; }
+        .test-name {
+            font-weight: 600;
+            flex: 1;
+        }
+        .test-module {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        .test-duration {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .message {
+            margin-top: 10px;
+            background: #fff3e0;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-x: auto;
+        }
+        .message pre {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .screenshot {
+            margin-top: 15px;
+        }
+        .screenshot h4 {
+            color: #f44336;
+            margin-bottom: 10px;
+        }
+        .screenshot img {
+            max-width: 100%;
+            border: 2px solid #f44336;
+            border-radius: 5px;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AdWave Test Report</h1>
+            <div class="meta-info">
+                <div>Environment: production</div>
+                <div>LLM: openai / Qwen/Qwen2.5-VL-32B-Instruct</div>
+                <div>Start: 2026-01-13 16:49:19</div>
+                <div>Duration: 256.75s</div>
+            </div>
+        </header>
+
+        <div class="summary">
+            <div class="summary-card total">
+                <div class="number">3</div>
+                <div class="label">Total Tests</div>
+            </div>
+            <div class="summary-card passed">
+                <div class="number">2</div>
+                <div class="label">Passed</div>
+            </div>
+            <div class="summary-card failed">
+                <div class="number">1</div>
+                <div class="label">Failed</div>
+            </div>
+            <div class="summary-card rate">
+                <div class="number">66.7%</div>
+                <div class="label">Pass Rate</div>
+            </div>
+        </div>
+
+        <div class="test-results">
+            <h2>Test Results</h2>
+            
+            <div class="test-result passed">
+                <div class="test-header">
+                    <span class="status-icon">✓</span>
+                    <span class="test-name">test_login_page_loads</span>
+                    <span class="test-module">test_login</span>
+                    <span class="test-duration">41.85s</span>
+                </div>
+                
+                
+            </div>
+            
+            <div class="test-result passed">
+                <div class="test-header">
+                    <span class="status-icon">✓</span>
+                    <span class="test-name">test_login_with_valid_credentials</span>
+                    <span class="test-module">test_login</span>
+                    <span class="test-duration">121.41s</span>
+                </div>
+                
+                
+            </div>
+            
+            <div class="test-result failed">
+                <div class="test-header">
+                    <span class="status-icon">✗</span>
+                    <span class="test-name">test_login_redirects_to_dashboard</span>
+                    <span class="test-module">test_login</span>
+                    <span class="test-duration">93.49s</span>
+                </div>
+                <div class="message"><pre>tests\test_login.py:54: in test_login_redirects_to_dashboard
+    assert "login" not in result.lower() or "logged in" in result.lower(), (
+E   AssertionError: May still be on login page: AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to https://adwave.revosurge.com/login', extracted_content='🔗 Navigated to https://adwave.revosurge.com/login', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Typed sensitive data', extracted_content='Typed sensitive data', include_extracted_content_only_once=False, metadata={'input_x': 1443.0, 'input_y': 761.9375}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Typed sensitive data', extracted_content='Typed sensitive data', include_extracted_content_only_once=False, metadata={'input_x': 1423.0, 'input_y': 820.0625}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory=None, extracted_content='Clicked button "登入"', include_extracted_content_only_once=False, metadata={'click_x': 1443.0, 'click_y': 913.125}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Waited for 5 seconds', extracted_content='Waited for 5 seconds', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='<url>\nhttps://adwave.revosurge.com/campaign\n</url>\n<query>\ncurrent URL\n</query>\n<result>\nThe information about the current URL is not available in the provided webpage content.\n</result>', extracted_content='<url>\nhttps://adwave.revosurge.com/campaign\n</url>\n<query>\ncurrent URL\n</query>\n<result>\nThe information about the current URL is not available in the provided webpage content.\n</result>', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=JudgementResult(reasoning="The agent successfully navigated to the login page, entered the email and password (as indicated by the red boxes in the screenshots), clicked the login button, and reported the correct URL after login. The final URL provided, https://adwave.revosurge.com/campaign, suggests that the agent reached the dashboard or main application page. The agent's actions align with the task requirements, and the reported URL matches the expected outcome. The trajectory shows a clear and logical sequence of steps, with appropriate tool usage and no visible errors. The agent's reasoning appears sound, and the task was completed as requested.", verdict=True, failure_reason='', impossible_task=False, reached_captcha=False), error=None, attachments=[], images=None, long_term_memory='Task completed: True - The login process was successful. After logging in, the current URL is https://adwave.revosurge.com/ - 58 more characters', extracted_content='The login process was successful. After logging in, the current URL is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'https://adwave.revosurge.com/login', 'new_tab': False}, 'interacted_element': None}, {'input': {'index': 6, 'text': '<secret>email</secret>', 'clear': True}, 'interacted_element': DOMInteractedElement(node_id=81, backend_node_id=6, frame_id=None, node_type=<NodeType.ELEMENT_NODE: 1>, node_value='', node_name='INPUT', attributes={'aria-invalid': 'false', 'id': '_R_iqav5uivadb_', 'type': 'email', 'class': 'MuiInputBase-input MuiFilledInput-input mui-s1l0pi', 'name': 'email', 'value': ''}, bounds=DOMRect(x=1296.5, y=751.875, width=293.0, height=20.125), x_path='html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[1]/div/div[1]/div/input', element_hash=3366353518564470466)}, {'input': {'index': 7, 'text': '<secret>password</secret>', 'clear': True}, 'interacted_element': DOMInteractedElement(node_id=92, backend_node_id=7, frame_id=None, node_type=<NodeType.ELEMENT_NODE: 1>, node_value='', node_name='INPUT', attributes={'aria-invalid': 'false', 'id': '_R_2baav5uivadb_', 'type': 'password', 'class': 'MuiInputBase-input MuiFilledInput-input MuiInputBase-inputAdornedEnd mui-lcc6nu', 'name': 'password', 'value': ''}, bounds=DOMRect(x=1296.5, y=810.0, width=253.0, height=20.125), x_path='html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[2]/div/div/div[1]/div/input', element_hash=1609523513289108929)}, {'click': {'index': 8}, 'interacted_element': DOMInteractedElement(node_id=253, backend_node_id=8, frame_id=None, node_type=<NodeType.ELEMENT_NODE: 1>, node_value='', node_name='BUTTON', attributes={'type': 'submit', 'class': 'flex items-center justify-center gap-[0.125rem] cursor-pointer disabled:cursor-not-allowed bg-button-gradient text-white px-6 py-3 font-body rounded-sm'}, bounds=DOMRect(x=1295.5, y=891.125, width=295.0, height=44.0), x_path='html/body/div[2]/div/div[2]/form/div[3]/button', element_hash=1296907906021166514)}, {'wait': {'seconds': 5}, 'interacted_element': None}, {'extract': {'query': 'current URL', 'extract_links': False, 'start_from_char': 0}, 'interacted_element': None}, {'done': {'text': 'The login process was successful. After logging in, the current URL is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.', 'success': True, 'files_to_display': []}, 'interacted_element': None}])
+E   assert ('login' not in 'agenthistorylist(all_results=[actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'found initial url and automatically loaded it. navigated to https://adwave.revosurge.com/login\', extracted_content=\'🔗 navigated to https://adwave.revosurge.com/login\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'typed sensitive data\', extracted_content=\'typed sensitive data\', include_extracted_content_only_once=false, metadata={\'input_x\': 1443.0, \'input_y\': 761.9375}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'typed sensitive data\', extracted_content=\'typed sensitive data\', include_extracted_content_only_once=false, metadata={\'input_x\': 1423.0, \'input_y\': 820.0625}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=none, extracted_content=\'clicked button "登入"\', include_extracted_content_only_once=false, metadata={\'click_x\': 1443.0, \'click_y\': 913.125}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'waited for 5 seconds\', extracted_content=\'waited for 5 seconds\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent url\\n</query>\\n<result>\\nthe information about the current url is not available in the provided webpage content.\\n</result>\', extracted_content=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent url\\n</query>\\n<result>\\nthe information about the current url is not available in the provided webpage content.\\n</result>\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=true, success=true, judgement=judgementresult(reasoning="the agent successfully navigated to the login page, entered the email and password (as indicated by the red boxes in the screenshots), clicked the login button, and reported the correct url after login. the final url provided, https://adwave.revosurge.com/campaign, suggests that the agent reached the dashboard or main application page. the agent\'s actions align with the task requirements, and the reported url matches the expected outcome. the trajectory shows a clear and logical sequence of steps, with appropriate tool usage and no visible errors. the agent\'s reasoning appears sound, and the task was completed as requested.", verdict=true, failure_reason=\'\', impossible_task=false, reached_captcha=false), error=none, attachments=[], images=none, long_term_memory=\'task completed: true - the login process was successful. after logging in, the current url is https://adwave.revosurge.com/ - 58 more characters\', extracted_content=\'the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false)], all_model_outputs=[{\'navigate\': {\'url\': \'https://adwave.revosurge.com/login\', \'new_tab\': false}, \'interacted_element\': none}, {\'input\': {\'index\': 6, \'text\': \'<secret>email</secret>\', \'clear\': true}, \'interacted_element\': dominteractedelement(node_id=81, backend_node_id=6, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'input\', attributes={\'aria-invalid\': \'false\', \'id\': \'_r_iqav5uivadb_\', \'type\': \'email\', \'class\': \'muiinputbase-input muifilledinput-input mui-s1l0pi\', \'name\': \'email\', \'value\': \'\'}, bounds=domrect(x=1296.5, y=751.875, width=293.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[1]/div/div[1]/div/input\', element_hash=3366353518564470466)}, {\'input\': {\'index\': 7, \'text\': \'<secret>password</secret>\', \'clear\': true}, \'interacted_element\': dominteractedelement(node_id=92, backend_node_id=7, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'input\', attributes={\'aria-invalid\': \'false\', \'id\': \'_r_2baav5uivadb_\', \'type\': \'password\', \'class\': \'muiinputbase-input muifilledinput-input muiinputbase-inputadornedend mui-lcc6nu\', \'name\': \'password\', \'value\': \'\'}, bounds=domrect(x=1296.5, y=810.0, width=253.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[2]/div/div/div[1]/div/input\', element_hash=1609523513289108929)}, {\'click\': {\'index\': 8}, \'interacted_element\': dominteractedelement(node_id=253, backend_node_id=8, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'button\', attributes={\'type\': \'submit\', \'class\': \'flex items-center justify-center gap-[0.125rem] cursor-pointer disabled:cursor-not-allowed bg-button-gradient text-white px-6 py-3 font-body rounded-sm\'}, bounds=domrect(x=1295.5, y=891.125, width=295.0, height=44.0), x_path=\'html/body/div[2]/div/div[2]/form/div[3]/button\', element_hash=1296907906021166514)}, {\'wait\': {\'seconds\': 5}, \'interacted_element\': none}, {\'extract\': {\'query\': \'current url\', \'extract_links\': false, \'start_from_char\': 0}, \'interacted_element\': none}, {\'done\': {\'text\': \'the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', \'success\': true, \'files_to_display\': []}, \'interacted_element\': none}])'
+E     
+E     'login' is contained here:
+E     ?                                                                                                                                                                                                                                               ^^
+E       agenthistorylist(all_results=[actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory='found initial url and automatically loaded it. navigated to https://adwave.revosurge.com/login', extracted_content='🔗 navigated to https://adwave.revosurge.com/login', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory='typed sensitive data', extracted_content='typed sensitive data', include_extracted_content_only_once=false, metadata={'input_x': 1443.0, 'input_y': 761.9375}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory='typed sensitive data', extracted_content='typed sensitive data', include_extracted_content_only_once=false, metadata={'input_x': 1423.0, 'input_y': 820.0625}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=none, extracted_content='clicked button "登入"', include_extracted_content_only_once=false, metadata={'click_x': 1443.0, 'click_y': 913.125}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory='waited for 5 seconds', extracted_content='waited for 5 seconds', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory='<url>\nhttps://adwave.revosurge.com/campaign\n</url>\n<query>\ncurrent url\n</query>\n<result>\nthe information about the current url is not available in the provided webpage content.\n</result>', extracted_content='<url>\nhttps://adwave.revosurge.com/campaign\n</url>\n<query>\ncurrent url\n</query>\n<result>\nthe information about the current url is not available in the provided webpage content.\n</result>', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=true, success=true, judgement=judgementresult(reasoning="the agent successfully navigated to the login page, entered the email and password (as indicated by the red boxes in the screenshots), clicked the login button, and reported the correct url after login. the final url provided, https://adwave.revosurge.com/campaign, suggests that the agent reached the dashboard or main application page. the agent's actions align with the task requirements, and the reported url matches the expected outcome. the trajectory shows a clear and logical sequence of steps, with appropriate tool usage and no visible errors. the agent's reasoning appears sound, and the task was completed as requested.", verdict=true, failure_reason='', impossible_task=false, reached_captcha=false), error=none, attachments=[], images=none, long_term_memory='task completed: true - the login process was successful. after logging in, the current url is https://adwave.revosurge.com/ - 58 more characters', extracted_content='the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.', include_extracted_content_only_once=false, metadata=none, include_in_memory=false)], all_model_outputs=[{'navigate': {'url': 'https://adwave.revosurge.com/login', 'new_tab': false}, 'interacted_element': none}, {'input': {'index': 6, 'text': '<secret>email</secret>', 'clear': true}, 'interacted_element': dominteractedelement(node_id=81, backend_node_id=6, frame_id=none, node_type=<nodetype.element_node: 1>, node_value='', node_name='input', attributes={'aria-invalid': 'false', 'id': '_r_iqav5uivadb_', 'type': 'email', 'class': 'muiinputbase-input muifilledinput-input mui-s1l0pi', 'name': 'email', 'value': ''}, bounds=domrect(x=1296.5, y=751.875, width=293.0, height=20.125), x_path='html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[1]/div/div[1]/div/input', element_hash=3366353518564470466)}, {'input': {'index': 7, 'text': '<secret>password</secret>', 'clear': true}, 'interacted_element': dominteractedelement(node_id=92, backend_node_id=7, frame_id=none, node_type=<nodetype.element_node: 1>, node_value='', node_name='input', attributes={'aria-invalid': 'false', 'id': '_r_2baav5uivadb_', 'type': 'password', 'class': 'muiinputbase-input muifilledinput-input muiinputbase-inputadornedend mui-lcc6nu', 'name': 'password', 'value': ''}, bounds=domrect(x=1296.5, y=810.0, width=253.0, height=20.125), x_path='html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[2]/div/div/div[1]/div/input', element_hash=1609523513289108929)}, {'click': {'index': 8}, 'interacted_element': dominteractedelement(node_id=253, backend_node_id=8, frame_id=none, node_type=<nodetype.element_node: 1>, node_value='', node_name='button', attributes={'type': 'submit', 'class': 'flex items-center justify-center gap-[0.125rem] cursor-pointer disabled:cursor-not-allowed bg-button-gradient text-white px-6 py-3 font-body rounded-sm'}, bounds=domrect(x=1295.5, y=891.125, width=295.0, height=44.0), x_path='html/body/div[2]/div/div[2]/form/div[3]/button', element_hash=1296907906021166514)}, {'wait': {'seconds': 5}, 'interacted_element': none}, {'extract': {'query': 'current url', 'extract_links': false, 'start_from_char': 0}, 'interacted_element': none}, {'done': {'text': 'the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.', 'success': true, 'files_to_display': []}, 'interacted_element': none}])
+E     ?                                                                                                                                                                                                                                               ^^^^^^^ or 'logged in' in 'agenthistorylist(all_results=[actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'found initial url and automatically loaded it. navigated to https://adwave.revosurge.com/login\', extracted_content=\'\U0001f517 navigated to https://adwave.revosurge.com/login\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'typed sensitive data\', extracted_content=\'typed sensitive data\', include_extracted_content_only_once=false, metadata={\'input_x\': 1443.0, \'input_y\': 761.9375}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'typed sensitive data\', extracted_content=\'typed sensitive data\', include_extracted_content_only_once=false, metadata={\'input_x\': 1423.0, \'input_y\': 820.0625}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=none, extracted_content=\'clicked button "\u767b\u5165"\', include_extracted_content_only_once=false, metadata={\'click_x\': 1443.0, \'click_y\': 913.125}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'waited for 5 seconds\', extracted_content=\'waited for 5 seconds\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent url\\n</query>\\n<result>\\nthe information about the current url is not available in the provided webpage content.\\n</result>\', extracted_content=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent url\\n</query>\\n<result>\\nthe information about the current url is not available in the provided webpage content.\\n</result>\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=true, success=true, judgement=judgementresult(reasoning="the agent successfully navigated to the login page, entered the email and password (as indicated by the red boxes in the screenshots), clicked the login button, and reported the correct url after login. the final url provided, https://adwave.revosurge.com/campaign, suggests that the agent reached the dashboard or main application page. the agent\'s actions align with the task requirements, and the reported url matches the expected outcome. the trajectory shows a clear and logical sequence of steps, with appropriate tool usage and no visible errors. the agent\'s reasoning appears sound, and the task was completed as requested.", verdict=true, failure_reason=\'\', impossible_task=false, reached_captcha=false), error=none, attachments=[], images=none, long_term_memory=\'task completed: true - the login process was successful. after logging in, the current url is https://adwave.revosurge.com/ - 58 more characters\', extracted_content=\'the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false)], all_model_outputs=[{\'navigate\': {\'url\': \'https://adwave.revosurge.com/login\', \'new_tab\': false}, \'interacted_element\': none}, {\'input\': {\'index\': 6, \'text\': \'<secret>email</secret>\', \'clear\': true}, \'interacted_element\': dominteractedelement(node_id=81, backend_node_id=6, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'input\', attributes={\'aria-invalid\': \'false\', \'id\': \'_r_iqav5uivadb_\', \'type\': \'email\', \'class\': \'muiinputbase-input muifilledinput-input mui-s1l0pi\', \'name\': \'email\', \'value\': \'\'}, bounds=domrect(x=1296.5, y=751.875, width=293.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[1]/div/div[1]/div/input\', element_hash=3366353518564470466)}, {\'input\': {\'index\': 7, \'text\': \'<secret>password</secret>\', \'clear\': true}, \'interacted_element\': dominteractedelement(node_id=92, backend_node_id=7, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'input\', attributes={\'aria-invalid\': \'false\', \'id\': \'_r_2baav5uivadb_\', \'type\': \'password\', \'class\': \'muiinputbase-input muifilledinput-input muiinputbase-inputadornedend mui-lcc6nu\', \'name\': \'password\', \'value\': \'\'}, bounds=domrect(x=1296.5, y=810.0, width=253.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[2]/div/div/div[1]/div/input\', element_hash=1609523513289108929)}, {\'click\': {\'index\': 8}, \'interacted_element\': dominteractedelement(node_id=253, backend_node_id=8, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'button\', attributes={\'type\': \'submit\', \'class\': \'flex items-center justify-center gap-[0.125rem] cursor-pointer disabled:cursor-not-allowed bg-button-gradient text-white px-6 py-3 font-body rounded-sm\'}, bounds=domrect(x=1295.5, y=891.125, width=295.0, height=44.0), x_path=\'html/body/div[2]/div/div[2]/form/div[3]/button\', element_hash=1296907906021166514)}, {\'wait\': {\'seconds\': 5}, \'interacted_element\': none}, {\'extract\': {\'query\': \'current url\', \'extract_links\': false, \'start_from_char\': 0}, \'interacted_element\': none}, {\'done\': {\'text\': \'the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', \'success\': true, \'files_to_display\': []}, \'interacted_element\': none}])')
+E    +  where 'agenthistorylist(all_results=[actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'found initial url and automatically loaded it. navigated to https://adwave.revosurge.com/login\', extracted_content=\'\U0001f517 navigated to https://adwave.revosurge.com/login\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'typed sensitive data\', extracted_content=\'typed sensitive data\', include_extracted_content_only_once=false, metadata={\'input_x\': 1443.0, \'input_y\': 761.9375}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'typed sensitive data\', extracted_content=\'typed sensitive data\', include_extracted_content_only_once=false, metadata={\'input_x\': 1423.0, \'input_y\': 820.0625}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=none, extracted_content=\'clicked button "\u767b\u5165"\', include_extracted_content_only_once=false, metadata={\'click_x\': 1443.0, \'click_y\': 913.125}, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'waited for 5 seconds\', extracted_content=\'waited for 5 seconds\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=false, success=none, judgement=none, error=none, attachments=none, images=none, long_term_memory=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent url\\n</query>\\n<result>\\nthe information about the current url is not available in the provided webpage content.\\n</result>\', extracted_content=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent url\\n</query>\\n<result>\\nthe information about the current url is not available in the provided webpage content.\\n</result>\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false), actionresult(is_done=true, success=true, judgement=judgementresult(reasoning="the agent successfully navigated to the login page, entered the email and password (as indicated by the red boxes in the screenshots), clicked the login button, and reported the correct url after login. the final url provided, https://adwave.revosurge.com/campaign, suggests that the agent reached the dashboard or main application page. the agent\'s actions align with the task requirements, and the reported url matches the expected outcome. the trajectory shows a clear and logical sequence of steps, with appropriate tool usage and no visible errors. the agent\'s reasoning appears sound, and the task was completed as requested.", verdict=true, failure_reason=\'\', impossible_task=false, reached_captcha=false), error=none, attachments=[], images=none, long_term_memory=\'task completed: true - the login process was successful. after logging in, the current url is https://adwave.revosurge.com/ - 58 more characters\', extracted_content=\'the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', include_extracted_content_only_once=false, metadata=none, include_in_memory=false)], all_model_outputs=[{\'navigate\': {\'url\': \'https://adwave.revosurge.com/login\', \'new_tab\': false}, \'interacted_element\': none}, {\'input\': {\'index\': 6, \'text\': \'<secret>email</secret>\', \'clear\': true}, \'interacted_element\': dominteractedelement(node_id=81, backend_node_id=6, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'input\', attributes={\'aria-invalid\': \'false\', \'id\': \'_r_iqav5uivadb_\', \'type\': \'email\', \'class\': \'muiinputbase-input muifilledinput-input mui-s1l0pi\', \'name\': \'email\', \'value\': \'\'}, bounds=domrect(x=1296.5, y=751.875, width=293.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[1]/div/div[1]/div/input\', element_hash=3366353518564470466)}, {\'input\': {\'index\': 7, \'text\': \'<secret>password</secret>\', \'clear\': true}, \'interacted_element\': dominteractedelement(node_id=92, backend_node_id=7, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'input\', attributes={\'aria-invalid\': \'false\', \'id\': \'_r_2baav5uivadb_\', \'type\': \'password\', \'class\': \'muiinputbase-input muifilledinput-input muiinputbase-inputadornedend mui-lcc6nu\', \'name\': \'password\', \'value\': \'\'}, bounds=domrect(x=1296.5, y=810.0, width=253.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[2]/div/div/div[1]/div/input\', element_hash=1609523513289108929)}, {\'click\': {\'index\': 8}, \'interacted_element\': dominteractedelement(node_id=253, backend_node_id=8, frame_id=none, node_type=<nodetype.element_node: 1>, node_value=\'\', node_name=\'button\', attributes={\'type\': \'submit\', \'class\': \'flex items-center justify-center gap-[0.125rem] cursor-pointer disabled:cursor-not-allowed bg-button-gradient text-white px-6 py-3 font-body rounded-sm\'}, bounds=domrect(x=1295.5, y=891.125, width=295.0, height=44.0), x_path=\'html/body/div[2]/div/div[2]/form/div[3]/button\', element_hash=1296907906021166514)}, {\'wait\': {\'seconds\': 5}, \'interacted_element\': none}, {\'extract\': {\'query\': \'current url\', \'extract_links\': false, \'start_from_char\': 0}, \'interacted_element\': none}, {\'done\': {\'text\': \'the login process was successful. after logging in, the current url is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', \'success\': true, \'files_to_display\': []}, \'interacted_element\': none}])' = <built-in method lower of str object at 0x000002785F46F050>()
+E    +    where <built-in method lower of str object at 0x000002785F46F050> = 'AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory=\'Found initial url and automatically loaded it. Navigated to https://adwave.revosurge.com/login\', extracted_content=\'\U0001f517 Navigated to https://adwave.revosurge.com/login\', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory=\'Typed sensitive data\', extracted_content=\'Typed sensitive data\', include_extracted_content_only_once=False, metadata={\'input_x\': 1443.0, \'input_y\': 761.9375}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory=\'Typed sensitive data\', extracted_content=\'Typed sensitive data\', include_extracted_content_only_once=False, metadata={\'input_x\': 1423.0, \'input_y\': 820.0625}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory=None, extracted_content=\'Clicked button "\u767b\u5165"\', include_extracted_content_only_once=False, metadata={\'click_x\': 1443.0, \'click_y\': 913.125}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory=\'Waited for 5 seconds\', extracted_content=\'Waited for 5 seconds\', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent URL\\n</query>\\n<result>\\nThe information about the current URL is not available in the provided webpage content.\\n</result>\', extracted_content=\'<url>\\nhttps://adwave.revosurge.com/campaign\\n</url>\\n<query>\\ncurrent URL\\n</query>\\n<result>\\nThe information about the current URL is not available in the provided webpage content.\\n</result>\', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=JudgementResult(reasoning="The agent successfully navigated to the login page, entered the email and password (as indicated by the red boxes in the screenshots), clicked the login button, and reported the correct URL after login. The final URL provided, https://adwave.revosurge.com/campaign, suggests that the agent reached the dashboard or main application page. The agent\'s actions align with the task requirements, and the reported URL matches the expected outcome. The trajectory shows a clear and logical sequence of steps, with appropriate tool usage and no visible errors. The agent\'s reasoning appears sound, and the task was completed as requested.", verdict=True, failure_reason=\'\', impossible_task=False, reached_captcha=False), error=None, attachments=[], images=None, long_term_memory=\'Task completed: True - The login process was successful. After logging in, the current URL is https://adwave.revosurge.com/ - 58 more characters\', extracted_content=\'The login process was successful. After logging in, the current URL is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{\'navigate\': {\'url\': \'https://adwave.revosurge.com/login\', \'new_tab\': False}, \'interacted_element\': None}, {\'input\': {\'index\': 6, \'text\': \'<secret>email</secret>\', \'clear\': True}, \'interacted_element\': DOMInteractedElement(node_id=81, backend_node_id=6, frame_id=None, node_type=<NodeType.ELEMENT_NODE: 1>, node_value=\'\', node_name=\'INPUT\', attributes={\'aria-invalid\': \'false\', \'id\': \'_R_iqav5uivadb_\', \'type\': \'email\', \'class\': \'MuiInputBase-input MuiFilledInput-input mui-s1l0pi\', \'name\': \'email\', \'value\': \'\'}, bounds=DOMRect(x=1296.5, y=751.875, width=293.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[1]/div/div[1]/div/input\', element_hash=3366353518564470466)}, {\'input\': {\'index\': 7, \'text\': \'<secret>password</secret>\', \'clear\': True}, \'interacted_element\': DOMInteractedElement(node_id=92, backend_node_id=7, frame_id=None, node_type=<NodeType.ELEMENT_NODE: 1>, node_value=\'\', node_name=\'INPUT\', attributes={\'aria-invalid\': \'false\', \'id\': \'_R_2baav5uivadb_\', \'type\': \'password\', \'class\': \'MuiInputBase-input MuiFilledInput-input MuiInputBase-inputAdornedEnd mui-lcc6nu\', \'name\': \'password\', \'value\': \'\'}, bounds=DOMRect(x=1296.5, y=810.0, width=253.0, height=20.125), x_path=\'html/body/div[2]/div/div[2]/form/div[2]/div[2]/div[2]/div/div/div[1]/div/input\', element_hash=1609523513289108929)}, {\'click\': {\'index\': 8}, \'interacted_element\': DOMInteractedElement(node_id=253, backend_node_id=8, frame_id=None, node_type=<NodeType.ELEMENT_NODE: 1>, node_value=\'\', node_name=\'BUTTON\', attributes={\'type\': \'submit\', \'class\': \'flex items-center justify-center gap-[0.125rem] cursor-pointer disabled:cursor-not-allowed bg-button-gradient text-white px-6 py-3 font-body rounded-sm\'}, bounds=DOMRect(x=1295.5, y=891.125, width=295.0, height=44.0), x_path=\'html/body/div[2]/div/div[2]/form/div[3]/button\', element_hash=1296907906021166514)}, {\'wait\': {\'seconds\': 5}, \'interacted_element\': None}, {\'extract\': {\'query\': \'current URL\', \'extract_links\': False, \'start_from_char\': 0}, \'interacted_element\': None}, {\'done\': {\'text\': \'The login process was successful. After logging in, the current URL is https://adwave.revosurge.com/campaign, which is the dashboard or main application page.\', \'success\': True, \'files_to_display\': []}, \'interacted_element\': None}])'.lower</pre></div>
+                
+            </div>
+            
+        </div>
+
+        <footer>
+            Generated by AdWave Test Tools | 2026-01-13 16:53:37
+        </footer>
+    </div>
+</body>
+</html>
