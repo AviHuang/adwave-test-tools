@@ -90,7 +90,7 @@ class AdWaveBrowserAgent:
         self,
         task: str,
         sensitive_data: Optional[Dict[str, str]] = None,
-        max_steps: int = 25,
+        max_steps: int = 8,
     ) -> str:
         """Run a browser automation task."""
         self._current_agent = Agent(
@@ -113,13 +113,12 @@ class AdWaveBrowserAgent:
         self.config.validate()
 
         task = f"""
-        1. Navigate to {self.config.login_url}
-        2. Enter {{email}} in the email input field
-        3. Enter {{password}} in the password input field
-        4. Click the login button
-        5. Wait for the page to redirect after login
-        6. Return the current page URL
-        """
+Go to {self.config.login_url}
+Enter {{email}} in the email input field
+Enter {{password}} in the password input field
+Click the login button
+Done when: URL changes to /campaign
+"""
 
         return await self.run_task(task, sensitive_data=self.config.credentials)
 
@@ -127,15 +126,16 @@ class AdWaveBrowserAgent:
         """Login and navigate to a specific page."""
         self.config.validate()
 
+        # Extract page name from URL for navigation
+        page_key = target_url.split("/")[-1]
+
         task = f"""
-        1. Navigate to {self.config.login_url}
-        2. Enter {{email}} in the email input field
-        3. Enter {{password}} in the password input field
-        4. Click the login button
-        5. Wait for login to complete
-        6. Navigate to {target_url}
-        7. Wait for the page to load
-        8. Report the page title and URL
-        """
+Go to {self.config.login_url}
+Enter {{email}} in the email input field
+Enter {{password}} in the password input field
+Click the login button
+After login, click the navigation menu item for "{page_key}"
+Done when: URL contains /{page_key}
+"""
 
         return await self.run_task(task, sensitive_data=self.config.credentials)

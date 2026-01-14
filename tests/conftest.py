@@ -69,6 +69,12 @@ def _generate_error_analysis(test_name: str, error_text: str, has_screenshot: bo
     return " ".join(analysis_parts)
 
 
+def pytest_runtest_teardown(item, nextitem):
+    """Add delay between tests for API rate limit cooldown."""
+    if nextitem is not None:
+        time.sleep(10)
+
+
 def pytest_addoption(parser):
     """Add command line options for pytest."""
     parser.addoption(
