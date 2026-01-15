@@ -346,10 +346,11 @@ def pytest_sessionfinish(session, exitstatus):
         # Send email if requested
         to_email = session.config.getoption("--email")
         if to_email:
-            smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-            smtp_port = int(os.getenv("SMTP_PORT", "465"))
-            smtp_user = os.getenv("SMTP_USER", "")
-            smtp_password = os.getenv("SMTP_PASSWORD", "")
+            smtp_server = os.getenv("SMTP_SERVER") or "smtp.gmail.com"
+            smtp_port_str = os.getenv("SMTP_PORT") or "465"
+            smtp_port = int(smtp_port_str)
+            smtp_user = os.getenv("SMTP_USER") or ""
+            smtp_password = os.getenv("SMTP_PASSWORD") or ""
 
             if smtp_user and smtp_password:
                 print(f"Sending report to {to_email}...")
