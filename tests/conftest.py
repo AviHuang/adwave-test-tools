@@ -14,7 +14,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import Config
 from core.browser_agent import AdWaveBrowserAgent, create_llm
-from core.reporter import TestReport, TestResult, ReportGenerator
+from core.reporter import (
+    TestReport,
+    TestResult,
+    ReportGenerator,
+    Checkpoint,
+    get_checkpoints_for_test,
+    extract_last_step_from_result,
+    analyze_error,
+    extract_key_error_log,
+)
 
 
 def _generate_error_analysis(test_name: str, error_text: str, has_screenshot: bool) -> str:
@@ -67,6 +76,30 @@ def _generate_error_analysis(test_name: str, error_text: str, has_screenshot: bo
         analysis_parts.append("See the screenshot below for the page state at the time of failure.")
 
     return " ".join(analysis_parts)
+
+
+# Define test execution order: Campaign -> Creatives -> Audience
+TEST_ORDER = [
+    "test_create_push_campaign",
+    "test_create_pop_campaign",
+    "test_create_display_campaign",
+    "test_create_native_campaign",
+    "test_upload_push_creative",
+    "test_upload_display_creative",
+    "test_upload_native_creative",
+    "test_create_audience",
+]
+
+
+def pytest_collection_modifyitems(items):
+    """Sort tests according to predefined order."""
+    def get_order(item):
+        try:
+            return TEST_ORDER.index(item.name)
+        except ValueError:
+            return len(TEST_ORDER)  # Unknown tests go last
+
+    items.sort(key=get_order)
 
 
 def pytest_runtest_teardown(item, nextitem):
@@ -184,15 +217,16 @@ def pytest_configure(config):
         start_time=datetime.now(),
         environment=config.getoption("--env"),
     )
-    config._report_generator = ReportGenerator(
-        output_dir=config.getoption("--report-dir")
-    )
+    # Use absolute path for reports directory
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    reports_dir = os.path.join(project_root, config.getoption("--report-dir"))
+    config._report_generator = ReportGenerator(output_dir=reports_dir)
     config._current_screenshot = None
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Capture test results and screenshots."""
+    """Capture test results, screenshots, and checkpoints."""
     outcome = yield
     report = outcome.get_result()
 
@@ -211,39 +245,67 @@ def pytest_runtest_makereport(item, call):
         # Get module name from test path
         module = item.module.__name__.split(".")[-1] if item.module else "unknown"
 
-        # Try to get screenshot from browser_agent if test failed
+        # Initialize variables
         screenshot_base64 = None
-        if status in ("failed", "error"):
-            # Try to get screenshot from the browser_agent fixture
-            try:
-                browser_agent = item.funcargs.get("browser_agent")
-                if browser_agent:
-                    screenshot_bytes = browser_agent.get_last_screenshot()
-                    if screenshot_bytes:
-                        screenshot_base64 = config._report_generator.screenshot_to_base64(
-                            screenshot_bytes
-                        )
-            except Exception as e:
-                print(f"Failed to get screenshot: {e}")
-
-        # Generate AI error analysis for failed tests
+        final_screenshot_base64 = None
+        checkpoints = []
+        error_message = ""
         error_analysis = None
-        if status in ("failed", "error") and report.longrepr:
-            # Use AI to analyze the error instead of raw logs
-            error_analysis = _generate_error_analysis(
-                test_name=item.name,
-                error_text=str(report.longrepr),
-                has_screenshot=screenshot_base64 is not None,
-            )
+        last_step = 0
 
-        # Create test result
+        # Try to get data from browser_agent
+        try:
+            browser_agent = item.funcargs.get("browser_agent")
+            if browser_agent:
+                # Get last result to extract step info
+                last_result = browser_agent.get_last_result()
+                if last_result:
+                    last_step = extract_last_step_from_result(last_result)
+
+                if status == "passed":
+                    # Get final screenshot on success
+                    final_data = browser_agent.get_final_screenshot()
+                    if final_data:
+                        if isinstance(final_data, str):
+                            final_screenshot_base64 = final_data
+                        else:
+                            final_screenshot_base64 = config._report_generator.screenshot_to_base64(
+                                final_data
+                            )
+                else:
+                    # Get error screenshot on failure
+                    error_data = browser_agent.get_last_screenshot()
+                    if error_data:
+                        if isinstance(error_data, str):
+                            screenshot_base64 = error_data
+                        else:
+                            screenshot_base64 = config._report_generator.screenshot_to_base64(
+                                error_data
+                            )
+        except Exception:
+            pass  # Report data collection not critical
+
+        # Generate error analysis for failed tests
+        if status in ("failed", "error") and report.longrepr:
+            error_text = str(report.longrepr)
+            error_message = extract_key_error_log(error_text)
+            error_analysis = analyze_error(error_text, browser_agent.get_last_result() if browser_agent else "")
+
+        # Generate checkpoints based on test name, status, and last step
+        test_passed = (status == "passed")
+        checkpoints = get_checkpoints_for_test(item.name, test_passed, last_step)
+
+        # Create test result with all data
         test_result = TestResult(
             name=item.name,
             module=module,
             status=status,
             duration=report.duration,
+            error_message=error_message,
             error_analysis=error_analysis,
             screenshot_base64=screenshot_base64,
+            final_screenshot_base64=final_screenshot_base64,
+            checkpoints=checkpoints,
         )
 
         config._test_report.results.append(test_result)

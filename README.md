@@ -8,23 +8,32 @@ This repository contains automated tests for verifying AdWave platform functiona
 
 ## Features
 
-- **Login Tests**: Verify authentication flow
-- **Campaign Tests**: Test campaign module functionality
-- **Analytics Tests**: Verify analytics dashboard
-- **Creative Library Tests**: Test asset management
-- **Audience Tests**: Verify audience management
+- **Campaign Tests**: Create campaigns with Push, Pop, Display, Native ad formats
+- **Creative Tests**: Upload creatives for Push, Display, Native formats
+- **Audience Tests**: Create audience segments
+- **Multi-LLM Support**: OpenAI, Claude, Gemini providers
+- **HTML Reports**: Detailed test reports with screenshots and checkpoints
+- **Email Reports**: Send reports via email automatically
+
+## Test Coverage
+
+| Module | Tests | Description |
+|--------|-------|-------------|
+| Campaign | 4 | Push, Pop, Display, Native campaign creation |
+| Creative | 3 | Push, Display, Native creative upload |
+| Audience | 1 | Audience segment creation |
 
 ## Requirements
 
 - Python 3.11+
-- DeepSeek API key
+- LLM API key (OpenAI, Claude, or Gemini)
 - AdWave test account credentials
 
 ## Local Setup
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-org/adwave-test-tools.git
+git clone https://github.com/anthropic-solutions/adwave-test-tools.git
 cd adwave-test-tools
 ```
 
@@ -43,7 +52,7 @@ playwright install chromium
 4. Configure environment:
 ```bash
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your credentials and API keys
 ```
 
 ## Running Tests
@@ -53,21 +62,106 @@ cp .env.example .env
 pytest tests/ -v
 ```
 
-### Run specific module tests:
-```bash
-pytest tests/test_login.py -v
-pytest tests/test_campaign.py -v
-```
-
-### Run with headed browser (for debugging):
+### Run with visible browser (headed mode):
 ```bash
 pytest tests/ -v --headed
+```
+
+### Run with HTML report:
+```bash
+pytest tests/ -v --report
+```
+
+### Run and send report via email:
+```bash
+pytest tests/ -v --report --email=your@email.com
+```
+
+### Run specific test module:
+```bash
+pytest tests/test_campaign_push.py -v --headed
+pytest tests/test_creative_display.py -v --headed
+pytest tests/test_audience_create.py -v --headed
+```
+
+### Select LLM provider:
+```bash
+pytest tests/ -v --llm=gemini
+pytest tests/ -v --llm=claude
+pytest tests/ -v --llm=openai
 ```
 
 ### Run against staging environment:
 ```bash
 pytest tests/ -v --env=staging
 ```
+
+## Project Structure
+
+```
+adwave-test-tools/
+├── .github/workflows/
+│   └── run-tests.yml           # GitHub Actions workflow
+├── assets/                     # Test images for creative upload
+│   ├── icon_192x192.png
+│   ├── display_250x250.png
+│   └── main_492x328.png
+├── core/
+│   ├── __init__.py
+│   ├── browser_agent.py        # Browser Use wrapper
+│   ├── config.py               # Configuration management
+│   ├── prompts.py              # Task prompts for automation
+│   └── reporter.py             # HTML report generator
+├── tests/
+│   ├── conftest.py             # Pytest fixtures and hooks
+│   ├── campaign_helpers.py     # Campaign test helpers
+│   ├── creative_helpers.py     # Creative test helpers
+│   ├── test_campaign_push.py
+│   ├── test_campaign_pop.py
+│   ├── test_campaign_display.py
+│   ├── test_campaign_native.py
+│   ├── test_creative_push.py
+│   ├── test_creative_display.py
+│   ├── test_creative_native.py
+│   └── test_audience_create.py
+├── reports/                    # Generated test reports
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── requirements.txt
+├── ISSUES.md                   # Known issues documentation
+└── README.md
+```
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ADWAVE_EMAIL` | Yes | AdWave test account email |
+| `ADWAVE_PASSWORD` | Yes | AdWave test account password |
+| `GOOGLE_API_KEY` | One of | Gemini API key |
+| `ANTHROPIC_API_KEY` | these | Claude API key |
+| `OPENAI_API_KEY` | three | OpenAI API key |
+| `SMTP_USER` | No | Email sender address |
+| `SMTP_PASSWORD` | No | Email password/app password |
+
+### GitHub Secrets (for CI/CD)
+
+| Secret | Description |
+|--------|-------------|
+| `GOOGLE_API_KEY` | Gemini API key |
+| `ADWAVE_EMAIL` | Test account email |
+| `ADWAVE_PASSWORD` | Test account password |
+
+## Test Reports
+
+Reports are generated in the `reports/` directory with:
+- Test summary (pass/fail counts, duration)
+- Checkpoints for each test step
+- Screenshots on success/failure
+- AI-powered error analysis
 
 ## GitHub Actions
 
@@ -81,66 +175,8 @@ pytest tests/ -v --env=staging
 
 ### Automatic Trigger
 
-Tests automatically run when:
-- AdWave main repository pushes to main/develop branch
-- A `repository_dispatch` event is received
+Tests can be triggered automatically when AdWave main repository has new commits using `repository_dispatch`.
 
-### Setting Up Cross-Repo Trigger
+## License
 
-To enable automatic testing when AdWave repo has new commits:
-
-1. Create a Personal Access Token (PAT) with `repo` scope
-2. Add the PAT as `TEST_DISPATCH_TOKEN` secret in AdWave repo
-3. Add this workflow to AdWave repo at `.github/workflows/trigger-tests.yml`:
-
-```yaml
-name: Trigger E2E Tests
-
-on:
-  push:
-    branches: [main, develop]
-
-jobs:
-  trigger-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger test repository
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.TEST_DISPATCH_TOKEN }}
-          repository: your-org/adwave-test-tools
-          event-type: adwave-deploy
-          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
-```
-
-## Project Structure
-
-```
-adwave-test-tools/
-├── .github/workflows/
-│   └── run-tests.yml       # Test workflow
-├── core/
-│   ├── __init__.py
-│   ├── browser_agent.py    # Browser Use wrapper
-│   └── config.py           # Configuration
-├── tests/
-│   ├── conftest.py         # Pytest fixtures
-│   ├── test_login.py
-│   ├── test_campaign.py
-│   ├── test_analytics.py
-│   ├── test_creative.py
-│   └── test_audience.py
-├── .env.example
-├── .gitignore
-├── pytest.ini
-├── requirements.txt
-└── README.md
-```
-
-## GitHub Secrets Required
-
-| Secret | Description |
-|--------|-------------|
-| `DEEPSEEK_API_KEY` | DeepSeek API key for LLM |
-| `ADWAVE_EMAIL` | Test account email |
-| `ADWAVE_PASSWORD` | Test account password |
+Internal use only - Anthropic Solutions

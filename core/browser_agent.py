@@ -3,9 +3,8 @@ Browser Use wrapper for AdWave testing.
 Provides a simplified interface for common test operations.
 Supports multiple LLM providers: OpenAI-compatible, Claude, Gemini.
 """
-import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Literal
 
@@ -17,6 +16,11 @@ if sys.platform == "win32":
 from browser_use import Agent, BrowserProfile
 
 from .config import Config, LLMConfig
+from .prompts import (
+    build_create_campaign_task,
+    build_create_audience_task,
+    build_create_creative_task,
+)
 
 # Asset paths for testing
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
@@ -75,11 +79,19 @@ class AdWaveBrowserAgent:
         self.headless = headless
         self._current_agent: Optional[Agent] = None
         self._last_screenshot: Optional[bytes] = None
+        self._last_result: Optional[str] = None
+        self._final_screenshot: Optional[bytes] = None  # Screenshot on success
 
         self.llm = create_llm(config.llm_config)
         print(f"Using LLM: {config.llm_config.provider} / {config.llm_config.model}")
 
-        self.browser_profile = BrowserProfile(headless=headless)
+        # Set viewport to 1080p for all modes
+        viewport = {"width": 1920, "height": 1080}
+
+        self.browser_profile = BrowserProfile(
+            headless=headless,
+            viewport=viewport,
+        )
 
     async def capture_screenshot(self) -> Optional[bytes]:
         """Capture a screenshot of the current browser state."""
@@ -95,14 +107,24 @@ class AdWaveBrowserAgent:
         return None
 
     def get_last_screenshot(self) -> Optional[bytes]:
-        """Get the last captured screenshot."""
+        """Get the last captured screenshot (error screenshot)."""
         return self._last_screenshot
+
+    def get_final_screenshot(self) -> Optional[bytes]:
+        """Get the final screenshot (success screenshot)."""
+        return self._final_screenshot
+
+    def get_last_result(self) -> Optional[str]:
+        """Get the last task result."""
+        return self._last_result
 
     async def run_task(
         self,
         task: str,
         sensitive_data: Optional[Dict[str, str]] = None,
         max_steps: int = 8,
+        available_file_paths: Optional[list[str]] = None,
+        step_timeout: int = 120,
     ) -> str:
         """Run a browser automation task."""
         self._current_agent = Agent(
@@ -111,13 +133,58 @@ class AdWaveBrowserAgent:
             browser_profile=self.browser_profile,
             sensitive_data=sensitive_data,
             max_steps=max_steps,
+            available_file_paths=available_file_paths,
+            step_timeout=step_timeout,
         )
 
         try:
             result = await self._current_agent.run()
-            return str(result)
-        except Exception:
-            await self.capture_screenshot()
+            result_str = str(result)
+            self._last_result = result_str
+            # Get final screenshot from agent history (browser may already be closed)
+            try:
+                screenshots = result.screenshots()
+                if screenshots and len(screenshots) > 0:
+                    self._final_screenshot = screenshots[-1]
+            except Exception:
+                pass  # Screenshot not critical
+            return result_str
+        except Exception as e:
+            error_type = type(e).__name__
+            print(f"Task failed with {error_type}: {str(e)[:200]}")
+
+            # Try to get screenshot from agent history first (more reliable)
+            try:
+                if self._current_agent and hasattr(self._current_agent, 'history'):
+                    history = self._current_agent.history
+                    if history:
+                        screenshots = history.screenshots()
+                        if screenshots and len(screenshots) > 0:
+                            self._last_screenshot = screenshots[-1]
+                            print("Screenshot captured from agent history")
+            except Exception as screenshot_err:
+                print(f"Failed to get screenshot from history: {screenshot_err}")
+
+            # Fallback: try to capture from browser directly
+            if not self._last_screenshot:
+                try:
+                    await self.capture_screenshot()
+                    if self._last_screenshot:
+                        print("Screenshot captured from browser")
+                except Exception as capture_err:
+                    print(f"Failed to capture screenshot: {capture_err}")
+
+            # Store error message for debugging
+            self._last_result = f"Error ({error_type}): {str(e)}"
+
+            # Clean up browser session to ensure next test starts fresh
+            try:
+                if self._current_agent and self._current_agent.browser_session:
+                    await self._current_agent.browser_session.close()
+                    print("Browser session closed")
+            except Exception:
+                pass
+
             raise
 
     async def login(self) -> str:
@@ -157,9 +224,8 @@ Done when: URL contains /{page_key}
         campaign_name: Optional[str] = None,
         ad_format: AdFormatType = "Push",
         target_event: Optional[str] = None,
-        location: str = "United States",
-        target_bid: str = "1.0",
-        budget: str = "10",
+        target_bid: str = "0.5",
+        budget: str = "1",
     ) -> str:
         """
         Create a new campaign with complete wizard flow.
@@ -167,20 +233,16 @@ Done when: URL contains /{page_key}
         Args:
             campaign_name: Campaign name (auto-generated with timestamp if not provided)
             ad_format: One of "Push", "Pop", "Display", "Native"
-            target_event: One of "Unique Visit", "Login", "Deposit", "Register" (random if not provided)
-            location: Target location (e.g., "United States")
-            target_bid: Bid amount (0.5-2.5 recommended)
-            budget: Daily budget amount
+            target_event: One of "Unique Visit", "Login", "Deposit", "Register"
+            target_bid: Bid amount (default 0.5)
+            budget: Daily budget amount (default 1)
 
         Returns:
             Result string from the browser agent
         """
-        import random
-
         self.config.validate()
 
         # Generate campaign name with timestamp if not provided
-        # Format: timestamp first for better visibility in truncated lists
         if not campaign_name:
             timestamp = datetime.now().strftime("%H%M%S_%Y%m%d")
             campaign_name = f"{timestamp}_test"
@@ -189,106 +251,14 @@ Done when: URL contains /{page_key}
         if not target_event:
             target_event = "Unique Visit"
 
-        # Calculate end date (tomorrow)
-        end_date = (datetime.now() + timedelta(days=1)).strftime("%m/%d/%Y")
-
-        # Determine asset upload instructions based on ad format
-        if ad_format == "Push":
-            asset_instructions = """
-Select assets for Push ad format from library:
-1. Click "Add from Library" button
-2. In the library popup, click on "Push Ad Set1" to select it
-3. Click "Add" button to confirm
-CHECKPOINT: Images should be selected and displayed
-"""
-        elif ad_format == "Pop":
-            asset_instructions = """
-Pop ad format does not require image uploads.
-CHECKPOINT: Proceed directly, no upload areas should be required
-"""
-        elif ad_format == "Display":
-            asset_instructions = """
-Select assets for Display ad format from library:
-1. Click "Add from Library" button
-2. In the library popup, click on the first available image to select it
-3. Click "Add" button to confirm
-CHECKPOINT: Image should be selected and displayed
-"""
-        elif ad_format == "Native":
-            asset_instructions = """
-Select assets for Native ad format from library:
-1. Click "Add from Library" button
-2. In the library popup, click on the first available image to select it
-3. Click "Add" button to confirm
-CHECKPOINT: Image should be selected and displayed
-"""
-        else:
-            asset_instructions = "Proceed with default asset handling."
-
-        task = f"""
-STEP 1: Login
-- Go to {self.config.login_url}
-- Wait for the login page to fully load
-- Enter {{email}} in the email input field
-- Enter {{password}} in the password input field
-- Click the "Login" button to submit the form
-- Wait for redirect to campaign page
-CHECKPOINT: URL should change to contain "/campaign" after successful login
-
-STEP 2: Switch Product
-- Click the product dropdown/selector in the top-left corner of the page
-- From the dropdown list, select "browser-use-test - https://revosrge.com"
-- Wait for the page to refresh with the new product context
-CHECKPOINT: The product selector should now display "browser-use-test"
-
-STEP 3: Create Campaign
-- Click the "+ Create Campaign" button
-- Wait for the campaign creation form/wizard to load
-CHECKPOINT: Campaign creation form should be visible with input fields
-
-STEP 4: Fill Campaign Details
-- Find the Campaign Name input field and type: "{campaign_name}"
-- For Target Event: click the dropdown to open it, then click on "{target_event}" option in the list
-- For Ad Format: click the dropdown to open it, then click on "{ad_format}" option in the list
-- For Location Targeting: click the dropdown to open it, click on "Aruba" (the first option), then click on empty/blank area to close
-- Find Target Bid input field and type: "{target_bid}"
-- Find Budget input field and type: "{budget}"
-- For Schedule section:
-  - Leave Start Date as default (today)
-  - Click the End Date field to open calendar picker
-  - In the calendar, click on tomorrow's date (the day after today)
-- Click "Next" button to proceed to asset upload step
-CHECKPOINT: All fields should be filled and Next button should be clickable
-
-STEP 5: Upload Assets
-{asset_instructions}
-- After assets are ready, click "Next" button to proceed to review step
-CHECKPOINT: Should advance to review/summary page
-
-STEP 6: Review and Publish
-- Review the campaign summary showing all entered details
-- Verify campaign name "{campaign_name}" is displayed correctly
-- Click "Publish" or "Create Campaign" or "Submit" button to finalize
-- Wait for success confirmation or redirect
-CHECKPOINT: Should see success message or be redirected to campaign list
-
-STEP 7: Verify Campaign Created
-- Navigate to campaign list if not already there (click Campaign in sidebar if needed)
-- Look at the campaign list table
-- Read and list ALL campaign names visible in the first page of the table
-
-IMPORTANT: You must report the campaign names you see in this exact format:
-CAMPAIGN_LIST_START
-[list each campaign name on a separate line]
-CAMPAIGN_LIST_END
-
-Example output format:
-CAMPAIGN_LIST_START
-campaign_name_1
-campaign_name_2
-campaign_name_3
-CAMPAIGN_LIST_END
-"""
+        task = build_create_campaign_task(
+            login_url=self.config.login_url,
+            campaign_name=campaign_name,
+            ad_format=ad_format,
+            target_event=target_event,
+            target_bid=target_bid,
+            budget=budget,
+        )
 
         return await self.run_task(
             task,
@@ -296,30 +266,81 @@ CAMPAIGN_LIST_END
             max_steps=50,
         )
 
-    async def create_post_ad(self, ad_name: str, headline: str, description: str) -> str:
-        """Create a Post ad within a campaign."""
+    async def create_audience(
+        self,
+        audience_name: Optional[str] = None,
+    ) -> str:
+        """
+        Create a new audience segment with minimal configuration.
+
+        Args:
+            audience_name: Segment name (auto-generated with timestamp if not provided)
+
+        Returns:
+            Result string from the browser agent
+        """
         self.config.validate()
 
-        task = f"""
-Go to {self.config.login_url}
-Enter {{email}} in the email input field
-Enter {{password}} in the password input field
-Click the login button
-Wait for the campaign page to load
-Click on an existing campaign or create new one
-Click "Add Ad" or "Create Ad" button
-Select "Post" ad type
-Fill in the ad name: "{ad_name}"
-Fill in the headline: "{headline}"
-Fill in the description: "{description}"
-If there's a creative library, select an existing image
-Otherwise, upload an image or skip if optional
-Click "Save" or "Create" to submit the ad
-Done when: Ad is created successfully or confirmation appears
-"""
+        # Generate audience name with timestamp if not provided
+        if not audience_name:
+            timestamp = datetime.now().strftime("%H%M%S_%Y%m%d")
+            audience_name = f"{timestamp}_audience"
+
+        task = build_create_audience_task(
+            login_url=self.config.login_url,
+            audience_name=audience_name,
+        )
 
         return await self.run_task(
             task,
             sensitive_data=self.config.credentials,
-            max_steps=20,
+            max_steps=30,
+        )
+
+    async def create_creative(
+        self,
+        ad_format: AdFormatType = "Display",
+    ) -> str:
+        """
+        Upload a new creative to the library.
+
+        Args:
+            ad_format: One of "Push", "Display", "Native"
+
+        Returns:
+            Result string from the browser agent
+        """
+        self.config.validate()
+
+        # Prepare file paths based on ad format
+        if ad_format == "Push":
+            file_paths = [str(ICON_192x192), str(MAIN_492x328)]
+            task = build_create_creative_task(
+                login_url=self.config.login_url,
+                ad_format=ad_format,
+                icon_path=str(ICON_192x192),
+                main_path=str(MAIN_492x328),
+            )
+        elif ad_format == "Display":
+            file_paths = [str(DISPLAY_250x250)]
+            task = build_create_creative_task(
+                login_url=self.config.login_url,
+                ad_format=ad_format,
+                image_path=str(DISPLAY_250x250),
+            )
+        elif ad_format == "Native":
+            file_paths = [str(MAIN_492x328)]
+            task = build_create_creative_task(
+                login_url=self.config.login_url,
+                ad_format=ad_format,
+                image_path=str(MAIN_492x328),
+            )
+        else:
+            raise ValueError(f"Unknown ad format: {ad_format}")
+
+        return await self.run_task(
+            task,
+            sensitive_data=self.config.credentials,
+            max_steps=30,
+            available_file_paths=file_paths,
         )
