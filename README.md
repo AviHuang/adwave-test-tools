@@ -170,12 +170,99 @@ Reports are generated in the `reports/` directory with:
 1. Go to Actions tab
 2. Select "AdWave Tests" workflow
 3. Click "Run workflow"
-4. Select environment and options
+4. Configure options:
+   - **Environment**: `production` or `staging`
+   - **LLM provider**: `gemini`, `claude`, or `openai`
+   - **Test scope**: Select specific tests to run
+   - **Send email**: Optional email address for report
 5. Click "Run workflow"
 
-### Automatic Trigger
+### Test Scope Options
 
-Tests can be triggered automatically when AdWave main repository has new commits using `repository_dispatch`.
+| Scope | Tests | Description |
+|-------|-------|-------------|
+| `all` | 8 | Run all tests (default) |
+| `campaign` | 4 | All campaign creation tests |
+| `creative` | 3 | All creative upload tests |
+| `audience` | 1 | Audience creation test |
+| `campaign_push` | 1 | Push campaign only |
+| `campaign_pop` | 1 | Pop campaign only |
+| `campaign_display` | 1 | Display campaign only |
+| `campaign_native` | 1 | Native campaign only |
+| `creative_push` | 1 | Push creative only |
+| `creative_display` | 1 | Display creative only |
+| `creative_native` | 1 | Native creative only |
+
+### Automatic Trigger (Cross-Repository)
+
+Tests can be triggered automatically when AdWave main repository has new commits.
+
+**Default behavior**: Runs **all tests** with `gemini` provider against `production` environment.
+
+#### Setup Steps
+
+1. Create a Personal Access Token (PAT) with `repo` scope
+2. Add the PAT as `TEST_DISPATCH_TOKEN` secret in AdWave main repository
+3. Add this workflow file to AdWave repo at `.github/workflows/trigger-tests.yml`:
+
+```yaml
+name: Trigger E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  trigger-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger test repository
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.TEST_DISPATCH_TOKEN }}
+          repository: AviHuang/adwave-test-tools
+          event-type: adwave-deploy
+          client-payload: |
+            {
+              "environment": "production",
+              "llm": "gemini",
+              "scope": "all",
+              "email": ""
+            }
+```
+
+#### Customizing Auto-Trigger
+
+Modify `client-payload` to customize automatic test runs:
+
+```yaml
+# Run only campaign tests
+client-payload: '{"scope": "campaign"}'
+
+# Run with email notification
+client-payload: '{"scope": "all", "email": "team@example.com"}'
+
+# Run specific test
+client-payload: '{"scope": "campaign_push"}'
+```
+
+### Required GitHub Secrets
+
+Configure these in repository Settings → Secrets and variables → Actions:
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `GOOGLE_API_KEY` | Yes* | Gemini API key |
+| `ANTHROPIC_API_KEY` | Yes* | Claude API key |
+| `OPENAI_API_KEY` | Yes* | OpenAI API key |
+| `ADWAVE_EMAIL` | Yes | Test account email |
+| `ADWAVE_PASSWORD` | Yes | Test account password |
+| `SMTP_SERVER` | No | SMTP server (default: smtp.gmail.com) |
+| `SMTP_PORT` | No | SMTP port (default: 465) |
+| `SMTP_USER` | No | Email sender address |
+| `SMTP_PASSWORD` | No | Email password/app password |
+
+*At least one LLM API key is required based on selected provider.
 
 ## License
 
