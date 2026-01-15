@@ -12,19 +12,33 @@ on:
         options:
           - production
           - staging
-      headed:
-        description: 'Run in headed mode (for debugging)'
+      llm_provider:
+        description: 'LLM provider'
+        required: true
+        default: 'gemini'
+        type: choice
+        options:
+          - gemini
+          - claude
+          - openai
+      send_email:
+        description: 'Send report to email'
         required: false
-        default: false
-        type: boolean
+        type: string
+        default: ''
 
   # Cross-repo trigger from AdWave main repo
   repository_dispatch:
     types: [adwave-deploy, run-tests]
 
+  # Schedule: Run daily at 9:00 AM UTC
+  # schedule:
+  #   - cron: '0 9 * * *'
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -45,28 +59,53 @@ jobs:
 
       - name: Run tests
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # LLM API Keys
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_MODEL: gemini-3-flash-preview
+          # AdWave credentials
           ADWAVE_EMAIL: ${{ secrets.ADWAVE_EMAIL }}
           ADWAVE_PASSWORD: ${{ secrets.ADWAVE_PASSWORD }}
+          # Email configuration (optional)
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           # Determine environment from trigger type
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             ENV="${{ github.event.inputs.environment }}"
+            LLM="${{ github.event.inputs.llm_provider }}"
+            EMAIL="${{ github.event.inputs.send_email }}"
           else
-            # For repository_dispatch, use production by default or from payload
+            # For repository_dispatch, use defaults or from payload
             ENV="${{ github.event.client_payload.environment || 'production' }}"
+            LLM="${{ github.event.client_payload.llm || 'gemini' }}"
+            EMAIL="${{ github.event.client_payload.email || '' }}"
           fi
 
-          echo "Running tests against $ENV environment"
+          echo "Running tests against $ENV environment with $LLM"
 
-          pytest tests/ -v --env=$ENV --tb=short --junitxml=test-results.xml
+          # Build pytest command
+          CMD="pytest tests/ -v --env=$ENV --llm=$LLM --report --tb=short --junitxml=test-results.xml"
+
+          # Add email if specified
+          if [ -n "$EMAIL" ]; then
+            CMD="$CMD --email=$EMAIL"
+          fi
+
+          # Run tests
+          $CMD
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
-          path: test-results.xml
+          path: |
+            test-results.xml
+            reports/*.html
 
       - name: Test Summary
         uses: test-summary/action@v2
