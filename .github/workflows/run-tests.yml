@@ -21,6 +21,23 @@ on:
           - gemini
           - claude
           - openai
+      test_scope:
+        description: 'Test scope'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - campaign
+          - creative
+          - audience
+          - campaign_push
+          - campaign_pop
+          - campaign_display
+          - campaign_native
+          - creative_push
+          - creative_display
+          - creative_native
       send_email:
         description: 'Send report to email'
         required: false
@@ -73,22 +90,64 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
-          # Determine environment from trigger type
+          # Determine parameters from trigger type
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             ENV="${{ github.event.inputs.environment }}"
             LLM="${{ github.event.inputs.llm_provider }}"
             EMAIL="${{ github.event.inputs.send_email }}"
+            SCOPE="${{ github.event.inputs.test_scope }}"
           else
             # For repository_dispatch, use defaults or from payload
             ENV="${{ github.event.client_payload.environment || 'production' }}"
             LLM="${{ github.event.client_payload.llm || 'gemini' }}"
             EMAIL="${{ github.event.client_payload.email || '' }}"
+            SCOPE="${{ github.event.client_payload.scope || 'all' }}"
           fi
 
-          echo "Running tests against $ENV environment with $LLM"
+          # Determine test path based on scope
+          case $SCOPE in
+            all)
+              TEST_PATH="tests/"
+              ;;
+            campaign)
+              TEST_PATH="tests/test_campaign_*.py"
+              ;;
+            creative)
+              TEST_PATH="tests/test_creative_*.py"
+              ;;
+            audience)
+              TEST_PATH="tests/test_audience_*.py"
+              ;;
+            campaign_push)
+              TEST_PATH="tests/test_campaign_push.py"
+              ;;
+            campaign_pop)
+              TEST_PATH="tests/test_campaign_pop.py"
+              ;;
+            campaign_display)
+              TEST_PATH="tests/test_campaign_display.py"
+              ;;
+            campaign_native)
+              TEST_PATH="tests/test_campaign_native.py"
+              ;;
+            creative_push)
+              TEST_PATH="tests/test_creative_push.py"
+              ;;
+            creative_display)
+              TEST_PATH="tests/test_creative_display.py"
+              ;;
+            creative_native)
+              TEST_PATH="tests/test_creative_native.py"
+              ;;
+            *)
+              TEST_PATH="tests/"
+              ;;
+          esac
+
+          echo "Running tests: $TEST_PATH against $ENV environment with $LLM"
 
           # Build pytest command
-          CMD="pytest tests/ -v --env=$ENV --llm=$LLM --report --tb=short --junitxml=test-results.xml"
+          CMD="pytest $TEST_PATH -v --env=$ENV --llm=$LLM --report --tb=short --junitxml=test-results.xml"
 
           # Add email if specified
           if [ -n "$EMAIL" ]; then
