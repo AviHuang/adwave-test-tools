@@ -38,6 +38,7 @@ on:
           - creative_push
           - creative_display
           - creative_native
+          - creative_delete
       send_email:
         description: 'Send report to email'
         required: false
@@ -138,6 +139,9 @@ jobs:
               ;;
             creative_native)
               TEST_PATH="tests/test_creative_native.py"
+              ;;
+            creative_delete)
+              TEST_PATH="tests/test_creative_delete.py"
               ;;
             *)
               TEST_PATH="tests/"

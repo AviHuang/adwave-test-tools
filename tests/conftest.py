@@ -87,6 +87,7 @@ TEST_ORDER = [
     "test_upload_push_creative",
     "test_upload_display_creative",
     "test_upload_native_creative",
+    "test_delete_creatives",
     "test_create_audience",
 ]
 

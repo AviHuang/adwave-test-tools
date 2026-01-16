@@ -124,9 +124,9 @@ CHECKPOINT: Images should be selected and displayed
 
 After images are loaded, fill in the ad details:
 - Find the Title input field and type: "Test Push Ad Title"
-- Find the Body/Description input field and type: "Test push notification message"
-- If there is a Landing URL field, type: "https://example.com"
-CHECKPOINT: All required text fields should be filled
+- Find the Description input field and type: "Test push notification message"
+- Leave Destination URL as default (do not modify it)
+CHECKPOINT: Title and Description fields should be filled
 
 - After all details are filled, click "Next" button to proceed to review step
 CHECKPOINT: Should advance to review/summary page
@@ -141,19 +141,16 @@ CHECKPOINT: Should advance to review/summary page
 """
 
 UPLOAD_ASSETS_DISPLAY = """
-STEP {step}: Upload Assets and Fill Details
+STEP {step}: Upload Assets
 Select assets for Display ad format from library:
 1. Click "Add from Library" button
 2. In the library popup, click on the first available image to select it
 3. Click "Add" button to confirm
 CHECKPOINT: Image should be selected and displayed
 
-After image is loaded, fill in the ad details if required:
-- If there is a Landing URL field, type: "https://example.com"
-- Fill any other required text fields with appropriate test content
-CHECKPOINT: All required fields should be filled
-
-- After all details are filled, click "Next" button to proceed to review step
+After image is loaded:
+- Leave Destination URL as default (do not modify it)
+- Click "Next" button to proceed to review step
 CHECKPOINT: Should advance to review/summary page
 """
 
@@ -168,8 +165,8 @@ CHECKPOINT: Image should be selected and displayed
 After image is loaded, fill in the ad details:
 - Find the Title input field and type: "Test Native Ad Title"
 - Find the Description input field and type: "Test native ad description text"
-- If there is a Landing URL field, type: "https://example.com"
-CHECKPOINT: All required text fields should be filled
+- Leave Destination URL as default (do not modify it)
+CHECKPOINT: Title and Description fields should be filled
 
 - After all details are filled, click "Next" button to proceed to review step
 CHECKPOINT: Should advance to review/summary page
@@ -335,6 +332,56 @@ IMPORTANT: Report the counts in this exact format:
 CREATIVE_COUNT_BEFORE: [number]
 CREATIVE_COUNT_AFTER: [number]
 """
+
+# =============================================================================
+# Creative Delete Steps
+# =============================================================================
+
+DELETE_MULTIPLE_CREATIVES = """
+STEP {step}: Delete Multiple Creatives
+You need to delete 3 creatives one by one. For each creative:
+1. Find the creative with EXACT name in the "Creative Name" column
+2. Click the trash/delete icon on the far right of that row
+3. In the "Confirm Delete" dialog, click "Confirm"
+4. Wait for the list to refresh before deleting the next one
+
+IMPORTANT: Match names EXACTLY - do not delete items with similar names!
+
+Creatives to delete (in order):
+{creative_list}
+
+Delete each one carefully, waiting for confirmation before proceeding to the next.
+CHECKPOINT: All 3 creatives should be deleted
+"""
+
+VERIFY_CREATIVES_DELETED = """
+STEP {step}: Verify All Deletions
+- After all deletions complete, count the total number of creative items now in the list/grid (AFTER_COUNT)
+- Compare with BEFORE_COUNT from earlier
+
+IMPORTANT: Report the counts in this exact format:
+CREATIVE_COUNT_BEFORE: [number]
+CREATIVE_COUNT_AFTER: [number]
+"""
+
+
+def build_delete_creatives_task(
+    login_url: str,
+    creative_names: list[str],
+) -> str:
+    """Build complete prompt for deleting multiple creatives in one task."""
+
+    # Format creative list
+    creative_list = "\n".join([f"  - {name}" for name in creative_names])
+
+    task = (
+        LOGIN.format(step=1, login_url=login_url) +
+        NAVIGATE_TO_CREATIVES.format(step=2) +
+        DELETE_MULTIPLE_CREATIVES.format(step=3, creative_list=creative_list) +
+        VERIFY_CREATIVES_DELETED.format(step=4)
+    )
+
+    return task
 
 
 def build_create_creative_task(

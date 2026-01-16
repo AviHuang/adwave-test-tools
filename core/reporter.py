@@ -522,14 +522,21 @@ def get_checkpoints_for_test(test_name: str, test_passed: bool, last_step: int =
             (5, "Submit Audience"),
             (6, "Verify Audience Created"),
         ],
-        # Creative tests (6 steps)
-        "creative": [
+        # Creative upload tests (6 steps)
+        "creative_upload": [
             (1, "Login"),
             (2, "Navigate to Creatives"),
             (3, "Add New Creative"),
             (4, "Choose Ad Format"),
             (5, "Upload Image"),
             (6, "Verify Upload"),
+        ],
+        # Creative delete tests (4 steps)
+        "creative_delete": [
+            (1, "Login"),
+            (2, "Navigate to Creatives"),
+            (3, "Delete All Creatives"),
+            (4, "Verify Deletions"),
         ],
     }
 
@@ -539,8 +546,10 @@ def get_checkpoints_for_test(test_name: str, test_passed: bool, last_step: int =
         steps = test_checkpoints["campaign"]
     elif "audience" in test_name_lower:
         steps = test_checkpoints["audience"]
+    elif "delete" in test_name_lower and "creative" in test_name_lower:
+        steps = test_checkpoints["creative_delete"]
     elif "creative" in test_name_lower:
-        steps = test_checkpoints["creative"]
+        steps = test_checkpoints["creative_upload"]
     else:
         # Default generic steps
         steps = [

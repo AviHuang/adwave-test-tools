@@ -20,8 +20,11 @@ This repository contains automated tests for verifying AdWave platform functiona
 | Module | Tests | Description |
 |--------|-------|-------------|
 | Campaign | 4 | Push, Pop, Display, Native campaign creation |
-| Creative | 3 | Push, Display, Native creative upload |
+| Creative Upload | 3 | Push, Display, Native creative upload |
+| Creative Delete | 1 | Delete all test creatives in one task |
 | Audience | 1 | Audience segment creation |
+
+**Total: 9 tests**
 
 ## Requirements
 
@@ -123,6 +126,7 @@ adwave-test-tools/
 │   ├── test_creative_push.py
 │   ├── test_creative_display.py
 │   ├── test_creative_native.py
+│   ├── test_creative_delete.py # Delete all test creatives
 │   └── test_audience_create.py
 ├── reports/                    # Generated test reports
 ├── .env.example
@@ -181,17 +185,18 @@ Reports are generated in the `reports/` directory with:
 
 | Scope | Tests | Description |
 |-------|-------|-------------|
-| `all` | 8 | Run all tests (default) |
+| `all` | 9 | Run all tests (default) |
 | `campaign` | 4 | All campaign creation tests |
-| `creative` | 3 | All creative upload tests |
+| `creative` | 4 | All creative tests (upload + delete) |
 | `audience` | 1 | Audience creation test |
 | `campaign_push` | 1 | Push campaign only |
 | `campaign_pop` | 1 | Pop campaign only |
 | `campaign_display` | 1 | Display campaign only |
 | `campaign_native` | 1 | Native campaign only |
-| `creative_push` | 1 | Push creative only |
-| `creative_display` | 1 | Display creative only |
-| `creative_native` | 1 | Native creative only |
+| `creative_push` | 1 | Push creative upload only |
+| `creative_display` | 1 | Display creative upload only |
+| `creative_native` | 1 | Native creative upload only |
+| `creative_delete` | 1 | Delete all test creatives |
 
 ### Automatic Trigger (Cross-Repository)
 

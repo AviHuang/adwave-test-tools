@@ -20,6 +20,7 @@ from .prompts import (
     build_create_campaign_task,
     build_create_audience_task,
     build_create_creative_task,
+    build_delete_creatives_task,
 )
 
 # Asset paths for testing
@@ -343,4 +344,30 @@ Done when: URL contains /{page_key}
             sensitive_data=self.config.credentials,
             max_steps=30,
             available_file_paths=file_paths,
+        )
+
+    async def delete_creatives(
+        self,
+        creative_names: list[str],
+    ) -> str:
+        """
+        Delete multiple creatives from the library in one task.
+
+        Args:
+            creative_names: List of creative names to delete
+
+        Returns:
+            Result string from the browser agent
+        """
+        self.config.validate()
+
+        task = build_delete_creatives_task(
+            login_url=self.config.login_url,
+            creative_names=creative_names,
+        )
+
+        return await self.run_task(
+            task,
+            sensitive_data=self.config.credentials,
+            max_steps=30,
         )
