@@ -297,28 +297,40 @@ CHECKPOINT: Should proceed to upload area
 
 UPLOAD_CREATIVE_PUSH = """
 STEP {step}: Upload Push Creative Images
+IMPORTANT: Upload ONLY ONE set of images. Do NOT repeat or upload multiple times!
+
 - Find the 192x192 Icon upload area and use upload_file action to upload: {icon_path}
 - Find the 492x328 Main Image upload area and use upload_file action to upload: {main_path}
 - Wait for both images to finish uploading
 - After both uploads complete, click the "upload" button outside the upload areas (secondary confirmation)
 - Wait for upload confirmation
 - Click the "Add" button at bottom right
+
+WARNING: After clicking "Add", do NOT upload again. One upload is sufficient.
 CHECKPOINT: Creative should be added successfully
 """
 
 UPLOAD_CREATIVE_DISPLAY = """
 STEP {step}: Upload Display Creative Image
+IMPORTANT: Upload ONLY ONE image. Do NOT repeat or upload multiple times!
+
 - Find the 250x250 Main Image upload area and use upload_file action to upload: {image_path}
 - Wait for image to finish uploading
 - Click the "Add" button at bottom right
+
+WARNING: After clicking "Add", do NOT upload again. One upload is sufficient.
 CHECKPOINT: Creative should be added successfully
 """
 
 UPLOAD_CREATIVE_NATIVE = """
 STEP {step}: Upload Native Creative Image
+IMPORTANT: Upload ONLY ONE image. Do NOT repeat or upload multiple times!
+
 - Find the 492x328 Main Image upload area and use upload_file action to upload: {image_path}
 - Wait for image to finish uploading
 - Click the "Add" button at bottom right
+
+WARNING: After clicking "Add", do NOT upload again. One upload is sufficient.
 CHECKPOINT: Creative should be added successfully
 """
 
@@ -396,18 +408,18 @@ def build_create_creative_task(
     # Select upload step based on ad format
     if ad_format == "Push":
         upload_step = UPLOAD_CREATIVE_PUSH.format(
-            step=4,
+            step=5,
             icon_path=icon_path,
             main_path=main_path,
         )
     elif ad_format == "Display":
         upload_step = UPLOAD_CREATIVE_DISPLAY.format(
-            step=4,
+            step=5,
             image_path=image_path,
         )
     elif ad_format == "Native":
         upload_step = UPLOAD_CREATIVE_NATIVE.format(
-            step=4,
+            step=5,
             image_path=image_path,
         )
     else:
@@ -423,3 +435,71 @@ def build_create_creative_task(
     )
 
     return task
+
+
+# =============================================================================
+# Registration Steps (Multi-step Wizard)
+# =============================================================================
+
+# Single-flow registration prompt (Agent calls get_verification_code action when needed)
+SINGLE_FLOW_REGISTRATION = """
+Complete the full registration process on AdWave platform.
+
+STEP 1: Navigate to Sign Up Page
+- Go to {base_url}
+- Click the "Sign Up" link/button
+- Wait for the registration form to appear
+
+STEP 2: Enter Email
+- Enter email: {email_alias}
+- Click "Next" button
+- Wait for verification code page
+
+STEP 3: Get and Enter Verification Code
+- Use the "get_verification_code" action to retrieve the code from email
+- Enter the verification code in the input field
+- Click "Confirm" button (NOT "Resend"!)
+
+STEP 4: Set Password
+- Enter password: {{password}}
+- Enter confirm password: {{password}}
+- Click "Next" button
+
+STEP 5: Fill Profile Information
+Fill text fields:
+- Full Name: Test
+- Last Name: User
+- Company Legal Name: Test Company LLC
+- Company Business Address Line 1: 123 Test Street
+- Company Business Address Line 2: Suite 100
+
+For dropdown fields (CLICK to open, then CLICK an option):
+- Country of Registration: Click the dropdown, then click "Aruba" from the list
+- Industry: Click the dropdown, then click "Advertising and Marketing" from the list
+
+⛔⛔⛔ CRITICAL: CLICK "NEXT" BUTTON ONLY! NEVER CLICK "BACK"! ⛔⛔⛔
+
+STEP 6: Complete Registration
+- Look for "It is all set!" message
+- Click "Let's Start Your Journey" button
+
+STEP 7: Login with New Account
+- Enter email: {{email_alias}}
+- Enter password: {{password}}
+- Click "Login" button (NOT "Sign up"!)
+
+SUCCESS: When you see the welcome page with "Link your first Product", use "done" action with message: "Registration and login successful"
+"""
+
+
+def build_single_flow_registration_task(
+    base_url: str,
+    email_alias: str,
+) -> str:
+    """Build prompt for single-flow registration."""
+    return SINGLE_FLOW_REGISTRATION.format(
+        base_url=base_url,
+        email_alias=email_alias,
+    )
+
+

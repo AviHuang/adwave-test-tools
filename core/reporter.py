@@ -1,19 +1,22 @@
 """
 Test report generator for AdWave tests.
 Generates HTML reports with screenshots and AI error analysis.
-Supports email delivery.
+Supports email and Slack delivery.
 """
 import os
 import re
+import json
 import base64
 import smtplib
+import urllib.request
+import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 
 
@@ -486,89 +489,330 @@ See attached HTML report for details.
             print(f"Failed to send email: {e}")
             return False
 
+    # =========================================================================
+    # Slack Integration
+    # =========================================================================
+
+    def generate_slack_blocks(self, report: TestReport) -> List[Dict[str, Any]]:
+        """
+        Generate Slack Block Kit message for the test report.
+
+        Returns a list of blocks that create a rich, formatted message.
+        """
+        # Status emoji and color
+        if report.pass_rate == 100:
+            status_emoji = ":white_check_mark:"
+            status_text = "All Tests Passed"
+        elif report.pass_rate >= 80:
+            status_emoji = ":large_yellow_circle:"
+            status_text = "Most Tests Passed"
+        else:
+            status_emoji = ":x:"
+            status_text = "Tests Failed"
+
+        blocks = [
+            # Header
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"{status_emoji} {report.title}",
+                    "emoji": True
+                }
+            },
+            # Summary section
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Environment:*\n{report.environment}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*LLM:*\n{report.llm_provider} / {report.llm_model}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Time:*\n{report.start_time.strftime('%Y-%m-%d %H:%M')}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Duration:*\n{report.total_duration:.1f}s"
+                    }
+                ]
+            },
+            {"type": "divider"},
+            # Results summary
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Test Results:* {status_text}\n"
+                            f":white_check_mark: *Passed:* {report.passed_tests}  |  "
+                            f":x: *Failed:* {report.failed_tests}  |  "
+                            f":bar_chart: *Pass Rate:* {report.pass_rate:.1f}%"
+                }
+            },
+        ]
+
+        # Add detailed test results with checkpoints
+        blocks.append({"type": "divider"})
+        blocks.append({
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": ":clipboard: Test Details",
+                "emoji": True
+            }
+        })
+
+        for result in report.results:
+            # Test status icon (use checkmark for test cases)
+            if result.status == "passed":
+                test_icon = ":white_check_mark:"
+            else:
+                test_icon = ":x:"
+
+            # Test name as section header (larger font)
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{test_icon} *{result.name}*\n_{result.module}_ | {result.duration:.1f}s"
+                }
+            })
+
+            # Build checkpoint string (smaller font using context block)
+            if result.checkpoints:
+                checkpoint_parts = []
+                for cp in result.checkpoints:
+                    if cp.status == "passed":
+                        cp_icon = ":large_green_circle:"
+                    elif cp.status == "failed":
+                        cp_icon = ":red_circle:"
+                    else:  # skipped
+                        cp_icon = ":white_circle:"
+                    checkpoint_parts.append(f"{cp_icon} {cp.name}")
+
+                # Use context block for smaller checkpoint text
+                blocks.append({
+                    "type": "context",
+                    "elements": [{
+                        "type": "mrkdwn",
+                        "text": "  ".join(checkpoint_parts)
+                    }]
+                })
+
+            # Add error info for failed tests
+            if result.status != "passed" and result.error_message:
+                error_preview = result.error_message[:100].replace('\n', ' ')
+                if len(result.error_message) > 100:
+                    error_preview += "..."
+                blocks.append({
+                    "type": "context",
+                    "elements": [{
+                        "type": "mrkdwn",
+                        "text": f":warning: `{error_preview}`"
+                    }]
+                })
+
+        # Footer
+        blocks.append({"type": "divider"})
+        blocks.append({
+            "type": "context",
+            "elements": [{
+                "type": "mrkdwn",
+                "text": f":robot_face: Generated by AdWave Test Tools | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            }]
+        })
+
+        return blocks
+
+    def generate_slack_text(self, report: TestReport) -> str:
+        """
+        Generate plain text summary for Slack (used as fallback).
+        """
+        status = "PASSED" if report.pass_rate == 100 else "FAILED"
+
+        text = f"""*{report.title}* - {status}
+
+*Summary:*
+• Environment: {report.environment}
+• LLM: {report.llm_provider} / {report.llm_model}
+• Total: {report.total_tests} | Passed: {report.passed_tests} | Failed: {report.failed_tests}
+• Pass Rate: {report.pass_rate:.1f}%
+• Duration: {report.total_duration:.1f}s
+"""
+
+        failed_tests = [r for r in report.results if r.status != "passed"]
+        if failed_tests:
+            text += "\n*Failed Tests:*\n"
+            for result in failed_tests[:5]:
+                text += f"• `{result.name}` - {result.module}\n"
+            if len(failed_tests) > 5:
+                text += f"_...and {len(failed_tests) - 5} more_\n"
+
+        return text
+
+    def send_to_slack(
+        self,
+        report: TestReport,
+        webhook_url: str,
+        channel: Optional[str] = None,
+        mention_on_failure: Optional[str] = None,
+    ) -> bool:
+        """
+        Send test report to Slack via Incoming Webhook.
+
+        Args:
+            report: Test report data
+            webhook_url: Slack Incoming Webhook URL
+            channel: Optional channel override (if webhook allows)
+            mention_on_failure: User/group to mention when tests fail
+                               e.g., "@channel", "@here", "<@U12345678>"
+
+        Returns:
+            True if message sent successfully
+
+        Example:
+            generator.send_to_slack(
+                report,
+                webhook_url="https://hooks.slack.com/services/T00/B00/XXX",
+                mention_on_failure="@channel"
+            )
+        """
+        # Build message payload
+        payload: Dict[str, Any] = {
+            "blocks": self.generate_slack_blocks(report),
+            "text": self.generate_slack_text(report),  # Fallback for notifications
+        }
+
+        # Add channel override if specified
+        if channel:
+            payload["channel"] = channel
+
+        # Add mention if tests failed
+        if mention_on_failure and report.failed_tests > 0:
+            mention_block = {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{mention_on_failure} Tests failed! Please check the report."
+                }
+            }
+            # Insert mention after header
+            payload["blocks"].insert(1, mention_block)
+
+        # Send to Slack
+        try:
+            data = json.dumps(payload).encode("utf-8")
+            request = urllib.request.Request(
+                webhook_url,
+                data=data,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+
+            with urllib.request.urlopen(request, timeout=30) as response:
+                if response.status == 200:
+                    print("Report sent to Slack successfully")
+                    return True
+                else:
+                    print(f"Slack returned status {response.status}")
+                    return False
+
+        except urllib.error.HTTPError as e:
+            print(f"Failed to send to Slack: HTTP {e.code} - {e.reason}")
+            return False
+        except urllib.error.URLError as e:
+            print(f"Failed to send to Slack: {e.reason}")
+            return False
+        except Exception as e:
+            print(f"Failed to send to Slack: {e}")
+            return False
+
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
 
-def get_checkpoints_for_test(test_name: str, test_passed: bool, last_step: int = 0) -> List[Checkpoint]:
+def extract_checkpoints_from_prompt(prompt: str) -> List[tuple]:
     """
-    Get predefined checkpoints based on the test name.
-    Each test type has its own set of steps.
+    Auto-extract checkpoints from prompt text by parsing STEP markers.
+
+    Parses patterns like:
+        STEP 1: Login
+        STEP 2: Navigate to Creatives
+
+    Args:
+        prompt: The task prompt string
+
+    Returns:
+        List of (step_number, step_name) tuples
+    """
+    if not prompt:
+        return []
+
+    # Pattern to match "STEP {n}: {description}"
+    pattern = r'STEP\s+(\d+):\s*([^\n]+)'
+    matches = re.findall(pattern, prompt, re.IGNORECASE)
+
+    # Convert to list of tuples and deduplicate
+    steps = []
+    seen_steps = set()
+    for num_str, name in matches:
+        step_num = int(num_str)
+        if step_num not in seen_steps:
+            # Clean up the step name (remove trailing punctuation, etc.)
+            clean_name = name.strip().rstrip(':').strip()
+            steps.append((step_num, clean_name))
+            seen_steps.add(step_num)
+
+    # Sort by step number
+    steps.sort(key=lambda x: x[0])
+    return steps
+
+
+def get_checkpoints_for_test(
+    test_name: str,
+    test_passed: bool,
+    last_step: int = 0,
+    prompt: str = None,
+) -> List[Checkpoint]:
+    """
+    Get checkpoints for a test, auto-extracting from prompt if available.
 
     Args:
         test_name: Name of the test
         test_passed: Whether the test passed
-        last_step: The last step that was attempted (0 means unknown, use test status)
+        last_step: The last step that was attempted (0 means unknown)
+        prompt: The task prompt (if available, checkpoints will be auto-extracted)
+
+    Returns:
+        List of Checkpoint objects with appropriate status
     """
-    # Define checkpoints for each test type
-    test_checkpoints = {
-        # Campaign tests (7 steps)
-        "campaign": [
-            (1, "Login"),
-            (2, "Switch Product"),
-            (3, "Create Campaign"),
-            (4, "Fill Campaign Details"),
-            (5, "Upload Assets"),
-            (6, "Review and Publish"),
-            (7, "Verify Campaign Created"),
-        ],
-        # Audience test (6 steps)
-        "audience": [
-            (1, "Login"),
-            (2, "Navigate to Audience"),
-            (3, "Create New Audience"),
-            (4, "Fill Audience Details"),
-            (5, "Submit Audience"),
-            (6, "Verify Audience Created"),
-        ],
-        # Creative upload tests (6 steps)
-        "creative_upload": [
-            (1, "Login"),
-            (2, "Navigate to Creatives"),
-            (3, "Add New Creative"),
-            (4, "Choose Ad Format"),
-            (5, "Upload Image"),
-            (6, "Verify Upload"),
-        ],
-        # Creative delete tests (4 steps)
-        "creative_delete": [
-            (1, "Login"),
-            (2, "Navigate to Creatives"),
-            (3, "Delete All Creatives"),
-            (4, "Verify Deletions"),
-        ],
-    }
-
-    # Determine test type from test name
-    test_name_lower = test_name.lower()
-    if "campaign" in test_name_lower:
-        steps = test_checkpoints["campaign"]
-    elif "audience" in test_name_lower:
-        steps = test_checkpoints["audience"]
-    elif "delete" in test_name_lower and "creative" in test_name_lower:
-        steps = test_checkpoints["creative_delete"]
-    elif "creative" in test_name_lower:
-        steps = test_checkpoints["creative_upload"]
+    # Try to auto-extract from prompt first
+    if prompt:
+        steps = extract_checkpoints_from_prompt(prompt)
+        if steps:
+            # Successfully extracted from prompt
+            pass
+        else:
+            # Fallback to generic steps
+            steps = _get_fallback_steps(test_name)
     else:
-        # Default generic steps
-        steps = [
-            (1, "Login"),
-            (2, "Navigate"),
-            (3, "Execute Task"),
-            (4, "Verify Result"),
-        ]
+        # No prompt provided, use fallback
+        steps = _get_fallback_steps(test_name)
 
-    # Convert to Checkpoint objects
+    # Convert to Checkpoint objects with status
     checkpoints = []
     total_steps = len(steps)
 
     for step_num, step_name in steps:
         if test_passed:
-            # All steps passed
             status = "passed"
         elif last_step > 0:
-            # We know which step failed
             if step_num < last_step:
                 status = "passed"
             elif step_num == last_step:
@@ -576,7 +820,7 @@ def get_checkpoints_for_test(test_name: str, test_passed: bool, last_step: int =
             else:
                 status = "skipped"
         else:
-            # Unknown failure point - mark last step as failed, rest as skipped
+            # Unknown failure point - mark last step as failed
             if step_num == total_steps:
                 status = "failed"
             else:
@@ -591,52 +835,18 @@ def get_checkpoints_for_test(test_name: str, test_passed: bool, last_step: int =
     return checkpoints
 
 
-def extract_checkpoints_from_result(result: str) -> List[Checkpoint]:
+def _get_fallback_steps(test_name: str) -> List[tuple]:
     """
-    Legacy function - kept for compatibility.
-    Prefer using get_checkpoints_for_test() instead.
+    Get fallback steps based on test name keywords.
+    Used when prompt is not available for auto-extraction.
     """
-    checkpoints = []
-
-    # Define step names based on common patterns in our prompts
-    step_names = {
-        1: "Login",
-        2: "Navigate to Target Page",
-        3: "Start Creation Flow",
-        4: "Fill Details / Configure",
-        5: "Upload / Submit",
-        6: "Verify Result",
-        7: "Final Verification",
-    }
-
-    # Find which steps are mentioned in the result
-    for step_num in range(1, 8):
-        patterns = [
-            rf'STEP\s+{step_num}\b',
-            rf'Step\s+{step_num}\b',
-            rf'\[Step\s+{step_num}\]',
-            rf'step\s+{step_num}\b',
-        ]
-        for pattern in patterns:
-            if re.search(pattern, result, re.IGNORECASE):
-                checkpoints.append(Checkpoint(
-                    step=step_num,
-                    name=step_names.get(step_num, f"Step {step_num}"),
-                    status="passed",
-                ))
-                break
-
-    # Deduplicate and sort
-    seen_steps = set()
-    unique_checkpoints = []
-    for cp in checkpoints:
-        if cp.step not in seen_steps:
-            seen_steps.add(cp.step)
-            unique_checkpoints.append(cp)
-
-    unique_checkpoints.sort(key=lambda x: x.step)
-
-    return unique_checkpoints
+    # Generic fallback steps
+    return [
+        (1, "Login"),
+        (2, "Navigate"),
+        (3, "Execute Task"),
+        (4, "Verify Result"),
+    ]
 
 
 def extract_last_step_from_result(result: str) -> int:

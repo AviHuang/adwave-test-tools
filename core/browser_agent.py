@@ -3,6 +3,7 @@ Browser Use wrapper for AdWave testing.
 Provides a simplified interface for common test operations.
 Supports multiple LLM providers: OpenAI-compatible, Claude, Gemini.
 """
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -13,14 +14,17 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-from browser_use import Agent, BrowserProfile
+from browser_use import Agent, Browser, BrowserProfile
+from browser_use.tools.service import Tools
 
 from .config import Config, LLMConfig
+from .gmail_helper import GmailHelper
 from .prompts import (
     build_create_campaign_task,
     build_create_audience_task,
     build_create_creative_task,
     build_delete_creatives_task,
+    build_single_flow_registration_task,
 )
 
 # Asset paths for testing
@@ -81,6 +85,7 @@ class AdWaveBrowserAgent:
         self._current_agent: Optional[Agent] = None
         self._last_screenshot: Optional[bytes] = None
         self._last_result: Optional[str] = None
+        self._last_prompt: Optional[str] = None  # Store prompt for checkpoint extraction
         self._final_screenshot: Optional[bytes] = None  # Screenshot on success
 
         self.llm = create_llm(config.llm_config)
@@ -93,6 +98,17 @@ class AdWaveBrowserAgent:
             headless=headless,
             viewport=viewport,
         )
+
+        # Initialize Gmail helper for registration tests (if configured)
+        # Priority: GMAIL_* > SMTP_* (reuse SMTP config if available)
+        # Note: Supports both @gmail.com and Gmail Workspace (custom domain) accounts
+        gmail_address = os.getenv("GMAIL_ADDRESS") or os.getenv("SMTP_USER")
+        gmail_password = os.getenv("GMAIL_APP_PASSWORD") or os.getenv("SMTP_PASSWORD")
+        if gmail_address and gmail_password:
+            self.gmail_helper = GmailHelper(gmail_address, gmail_password)
+            print(f"Gmail/Workspace helper initialized for: {gmail_address}")
+        else:
+            self.gmail_helper = None
 
     async def capture_screenshot(self) -> Optional[bytes]:
         """Capture a screenshot of the current browser state."""
@@ -119,6 +135,10 @@ class AdWaveBrowserAgent:
         """Get the last task result."""
         return self._last_result
 
+    def get_last_prompt(self) -> Optional[str]:
+        """Get the last task prompt (for checkpoint extraction)."""
+        return self._last_prompt
+
     async def run_task(
         self,
         task: str,
@@ -128,6 +148,9 @@ class AdWaveBrowserAgent:
         step_timeout: int = 120,
     ) -> str:
         """Run a browser automation task."""
+        # Store prompt for checkpoint extraction in reports
+        self._last_prompt = task
+
         self._current_agent = Agent(
             task=task,
             llm=self.llm,
@@ -187,38 +210,6 @@ class AdWaveBrowserAgent:
                 pass
 
             raise
-
-    async def login(self) -> str:
-        """Perform login to AdWave."""
-        self.config.validate()
-
-        task = f"""
-Go to {self.config.login_url}
-Enter {{email}} in the email input field
-Enter {{password}} in the password input field
-Click the login button
-Done when: URL changes to /campaign
-"""
-
-        return await self.run_task(task, sensitive_data=self.config.credentials)
-
-    async def login_and_navigate(self, target_url: str) -> str:
-        """Login and navigate to a specific page."""
-        self.config.validate()
-
-        # Extract page name from URL for navigation
-        page_key = target_url.split("/")[-1]
-
-        task = f"""
-Go to {self.config.login_url}
-Enter {{email}} in the email input field
-Enter {{password}} in the password input field
-Click the login button
-After login, click the navigation menu item for "{page_key}"
-Done when: URL contains /{page_key}
-"""
-
-        return await self.run_task(task, sensitive_data=self.config.credentials)
 
     async def create_campaign(
         self,
@@ -371,3 +362,102 @@ Done when: URL contains /{page_key}
             sensitive_data=self.config.credentials,
             max_steps=30,
         )
+
+    async def register_account(
+        self,
+        password: str = "TestPassword123!",
+        sender_filter: str = "adwave",
+        verification_timeout: int = 120,
+    ) -> str:
+        """
+        Single-flow registration with custom action for verification code.
+
+        Agent executes all steps in one flow and calls get_verification_code action when needed.
+        """
+        if not self.gmail_helper:
+            raise ValueError(
+                "Gmail not configured. Set GMAIL_ADDRESS and GMAIL_APP_PASSWORD "
+                "environment variables to use registration tests."
+            )
+
+        # Generate unique email alias
+        registration_start_time = datetime.now()
+        email_alias = self.gmail_helper.generate_alias()
+        print(f"Generated email alias: {email_alias}")
+        print(f"Registration started at: {registration_start_time.strftime('%H:%M:%S')}")
+
+        # Create tools with custom action for getting verification code
+        tools = Tools()
+
+        # Store gmail helper reference for the action
+        gmail_helper = self.gmail_helper
+
+        @tools.action("Get the email verification code from inbox. Call this after submitting email on signup page.")
+        def get_verification_code() -> str:
+            """Retrieves the verification code from the email inbox."""
+            print(f"[get_verification_code] Waiting for verification code...")
+            code = gmail_helper.wait_for_verification_code(
+                alias_email=email_alias,
+                timeout=verification_timeout,
+                sender_filter=sender_filter,
+                start_time_override=registration_start_time,
+            )
+            if code:
+                print(f"[get_verification_code] Got code: {code}")
+                return f"Verification code is: {code}"
+            else:
+                return "ERROR: Could not retrieve verification code from email"
+
+        # Build task prompt
+        task = build_single_flow_registration_task(
+            base_url=self.config.base_url,
+            email_alias=email_alias,
+        )
+
+        # Sensitive data for password and email
+        sensitive_data = {
+            "email_alias": email_alias,
+            "password": password,
+        }
+
+        browser = Browser(browser_profile=self.browser_profile)
+
+        try:
+            agent = Agent(
+                task=task,
+                llm=self.llm,
+                browser=browser,
+                tools=tools,
+                sensitive_data=sensitive_data,
+                step_timeout=60,
+                max_steps=60,
+            )
+
+            print("Starting single-flow registration...")
+            result = await agent.run()
+            result_str = str(result)
+
+            # Check final URL for success
+            registration_success = False
+            try:
+                current_url = await browser.get_current_page_url()
+                print(f"Final URL: {current_url}")
+                if current_url and "/campaign" in current_url:
+                    registration_success = True
+                    print("✓ Registration successful - landed on campaign page")
+            except Exception as e:
+                print(f"Could not get current URL: {e}")
+
+            if registration_success:
+                result_str += "\nREGISTRATION_SUCCESS: true\nLOGIN_SUCCESS: true"
+
+            return (
+                f"REGISTRATION_EMAIL: {email_alias}\n"
+                f"{result_str}"
+            )
+
+        finally:
+            try:
+                await browser.close()
+            except Exception:
+                pass

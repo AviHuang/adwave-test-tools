@@ -32,25 +32,3 @@ def verify_creative_upload(result: str) -> bool:
     # Fallback: check for success keywords
     result_lower = result.lower()
     return "success" in result_lower or "added" in result_lower
-
-
-def verify_creative_deleted(result: str, creative_name: str = "") -> bool:
-    """Verify creative deletion by checking count decrease.
-
-    Args:
-        result: Agent result string
-        creative_name: Name of the creative that was deleted (optional, for logging)
-
-    Returns:
-        True if deletion was successful (after_count < before_count)
-    """
-    before_count, after_count = extract_creative_counts(result)
-
-    # If counts found, verify after < before (deletion reduces count)
-    if before_count >= 0 and after_count >= 0:
-        return after_count < before_count
-
-    # Fallback: check for success keywords
-    result_lower = result.lower()
-    success_keywords = ["deleted", "removed", "confirmed"]
-    return any(keyword in result_lower for keyword in success_keywords)

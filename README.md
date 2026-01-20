@@ -19,12 +19,13 @@ This repository contains automated tests for verifying AdWave platform functiona
 
 | Module | Tests | Description |
 |--------|-------|-------------|
+| Registration | 1 | Full registration flow with email verification |
 | Campaign | 4 | Push, Pop, Display, Native campaign creation |
 | Creative Upload | 3 | Push, Display, Native creative upload |
 | Creative Delete | 1 | Delete all test creatives in one task |
 | Audience | 1 | Audience segment creation |
 
-**Total: 9 tests**
+**Total: 10 tests**
 
 ## Requirements
 
@@ -82,8 +83,19 @@ pytest tests/ -v --report --email=your@email.com
 
 ### Run specific test module:
 ```bash
-pytest tests/test_campaign_push.py -v --headed
-pytest tests/test_creative_display.py -v --headed
+# Run all campaign tests (parametrized)
+pytest tests/test_campaign.py -v --headed
+
+# Run specific campaign format
+pytest "tests/test_campaign.py::test_create_campaign[Campaign_Push]" -v --headed
+
+# Run all creative tests (upload + delete)
+pytest tests/test_creative.py -v --headed
+
+# Run specific creative format
+pytest "tests/test_creative.py::test_upload_creative[Upload_Display]" -v --headed
+
+# Run audience test
 pytest tests/test_audience_create.py -v --headed
 ```
 
@@ -113,21 +125,18 @@ adwave-test-tools/
 │   ├── __init__.py
 │   ├── browser_agent.py        # Browser Use wrapper
 │   ├── config.py               # Configuration management
+│   ├── gmail_helper.py         # Gmail IMAP helper for verification codes
 │   ├── prompts.py              # Task prompts for automation
 │   └── reporter.py             # HTML report generator
 ├── tests/
 │   ├── conftest.py             # Pytest fixtures and hooks
 │   ├── campaign_helpers.py     # Campaign test helpers
 │   ├── creative_helpers.py     # Creative test helpers
-│   ├── test_campaign_push.py
-│   ├── test_campaign_pop.py
-│   ├── test_campaign_display.py
-│   ├── test_campaign_native.py
-│   ├── test_creative_push.py
-│   ├── test_creative_display.py
-│   ├── test_creative_native.py
-│   ├── test_creative_delete.py # Delete all test creatives
-│   └── test_audience_create.py
+│   ├── registration_helpers.py # Registration test helpers
+│   ├── test_registration.py    # Registration with email verification
+│   ├── test_campaign.py        # Parametrized: Push, Pop, Display, Native
+│   ├── test_creative.py        # Parametrized: Upload (3 formats) + Delete
+│   └── test_audience_create.py # Audience segment creation
 ├── reports/                    # Generated test reports
 ├── .env.example
 ├── .gitignore
@@ -148,6 +157,8 @@ adwave-test-tools/
 | `GOOGLE_API_KEY` | One of | Gemini API key |
 | `ANTHROPIC_API_KEY` | these | Claude API key |
 | `OPENAI_API_KEY` | three | OpenAI API key |
+| `GMAIL_ADDRESS` | For registration | Gmail address for IMAP (receives verification codes) |
+| `GMAIL_APP_PASSWORD` | For registration | Gmail App Password for IMAP access |
 | `SMTP_USER` | No | Email sender address |
 | `SMTP_PASSWORD` | No | Email password/app password |
 
@@ -185,7 +196,8 @@ Reports are generated in the `reports/` directory with:
 
 | Scope | Tests | Description |
 |-------|-------|-------------|
-| `all` | 9 | Run all tests (default) |
+| `all` | 10 | Run all tests (default) |
+| `registration` | 1 | Registration with email verification |
 | `campaign` | 4 | All campaign creation tests |
 | `creative` | 4 | All creative tests (upload + delete) |
 | `audience` | 1 | Audience creation test |

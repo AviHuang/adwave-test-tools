@@ -78,17 +78,23 @@ def _generate_error_analysis(test_name: str, error_text: str, has_screenshot: bo
     return " ".join(analysis_parts)
 
 
-# Define test execution order: Campaign -> Creatives -> Audience
+# Define test execution order: Campaign -> Creatives -> Audience -> Registration
+# Note: Parametrized tests use format like "test_create_campaign[Campaign_Push]"
 TEST_ORDER = [
-    "test_create_push_campaign",
-    "test_create_pop_campaign",
-    "test_create_display_campaign",
-    "test_create_native_campaign",
-    "test_upload_push_creative",
-    "test_upload_display_creative",
-    "test_upload_native_creative",
+    # Campaign tests (parametrized)
+    "test_create_campaign[Campaign_Push]",
+    "test_create_campaign[Campaign_Pop]",
+    "test_create_campaign[Campaign_Display]",
+    "test_create_campaign[Campaign_Native]",
+    # Creative tests (parametrized upload + delete)
+    "test_upload_creative[Upload_Push]",
+    "test_upload_creative[Upload_Display]",
+    "test_upload_creative[Upload_Native]",
     "test_delete_creatives",
+    # Audience test
     "test_create_audience",
+    # Registration test (requires GMAIL_ADDRESS + GMAIL_APP_PASSWORD)
+    "test_register_new_account",
 ]
 
 
@@ -152,6 +158,12 @@ def pytest_addoption(parser):
         action="store",
         default=None,
         help="Email address to send report to",
+    )
+    parser.addoption(
+        "--slack",
+        action="store_true",
+        default=False,
+        help="Send report to Slack (requires SLACK_WEBHOOK_URL in .env)",
     )
 
 
@@ -292,9 +304,12 @@ def pytest_runtest_makereport(item, call):
             error_message = extract_key_error_log(error_text)
             error_analysis = analyze_error(error_text, browser_agent.get_last_result() if browser_agent else "")
 
-        # Generate checkpoints based on test name, status, and last step
+        # Get prompt from browser_agent for auto-extraction
+        last_prompt = browser_agent.get_last_prompt() if browser_agent else None
+
+        # Generate checkpoints - auto-extracted from prompt if available
         test_passed = (status == "passed")
-        checkpoints = get_checkpoints_for_test(item.name, test_passed, last_step)
+        checkpoints = get_checkpoints_for_test(item.name, test_passed, last_step, prompt=last_prompt)
 
         # Create test result with all data
         test_result = TestResult(
@@ -371,3 +386,22 @@ def pytest_sessionfinish(session, exitstatus):
             else:
                 print("Warning: Email requested but SMTP credentials not configured")
                 print("Set SMTP_USER and SMTP_PASSWORD in .env file")
+
+        # Send to Slack if requested
+        if session.config.getoption("--slack"):
+            slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+            if slack_webhook_url:
+                slack_mention = os.getenv("SLACK_MENTION_ON_FAILURE")
+                print("Sending report to Slack...")
+                success = generator.send_to_slack(
+                    report=report,
+                    webhook_url=slack_webhook_url,
+                    mention_on_failure=slack_mention,
+                )
+                if success:
+                    print("Report sent to Slack successfully")
+                else:
+                    print("Failed to send Slack report")
+            else:
+                print("Warning: Slack requested but SLACK_WEBHOOK_URL not configured")
+                print("Set SLACK_WEBHOOK_URL in .env file")

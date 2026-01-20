@@ -141,6 +141,10 @@ class Config:
         return f"{self.base_url}/campaign/create"
 
     @property
+    def registration_url(self) -> str:
+        return f"{self.base_url}/register"
+
+    @property
     def credentials(self) -> dict:
         """Return credentials as sensitive_data dict for Browser Use."""
         return {
