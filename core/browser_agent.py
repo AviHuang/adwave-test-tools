@@ -72,6 +72,18 @@ def create_llm(llm_config: LLMConfig):
             api_key=llm_config.api_key,
         )
 
+    elif provider == "ollama":
+        from browser_use import ChatOpenAI
+
+        return ChatOpenAI(
+            model=llm_config.model,
+            api_key=llm_config.api_key,
+            base_url=llm_config.base_url,
+            add_schema_to_system_prompt=True,
+            dont_force_structured_output=True,
+            timeout=120.0,  # LLM call timeout (local models can be slow)
+        )
+
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -88,8 +100,13 @@ class AdWaveBrowserAgent:
         self._last_prompt: Optional[str] = None  # Store prompt for checkpoint extraction
         self._final_screenshot: Optional[bytes] = None  # Screenshot on success
 
+        # Track if using local model (requires simplified Agent settings)
+        self._is_local_model = config.llm_config.provider == "ollama"
+
         self.llm = create_llm(config.llm_config)
         print(f"Using LLM: {config.llm_config.provider} / {config.llm_config.model}")
+        if self._is_local_model:
+            print("Local model mode: Using simplified Agent settings")
 
         # Set viewport to 1080p for all modes
         viewport = {"width": 1920, "height": 1080}
@@ -151,15 +168,30 @@ class AdWaveBrowserAgent:
         # Store prompt for checkpoint extraction in reports
         self._last_prompt = task
 
-        self._current_agent = Agent(
-            task=task,
-            llm=self.llm,
-            browser_profile=self.browser_profile,
-            sensitive_data=sensitive_data,
-            max_steps=max_steps,
-            available_file_paths=available_file_paths,
-            step_timeout=step_timeout,
-        )
+        # Base Agent configuration
+        agent_kwargs = {
+            "task": task,
+            "llm": self.llm,
+            "browser_profile": self.browser_profile,
+            "sensitive_data": sensitive_data,
+            "max_steps": max_steps,
+            "available_file_paths": available_file_paths,
+            "step_timeout": step_timeout,
+        }
+
+        # Apply simplified settings for local models
+        if self._is_local_model:
+            agent_kwargs.update({
+                "use_vision": True,         # Enable vision mode
+                "flash_mode": True,         # Simplified output: memory + action only
+                "max_actions_per_step": 1,  # One action at a time
+                "use_thinking": False,      # No thinking process
+                "use_judge": False,         # Skip judge evaluation
+                "max_failures": 5,          # More retries for local model
+                "include_tool_call_examples": True,  # Show action examples to model
+            })
+
+        self._current_agent = Agent(**agent_kwargs)
 
         try:
             result = await self._current_agent.run()

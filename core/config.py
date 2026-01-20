@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Optional, Literal
 
 # Supported LLM providers
-LLMProvider = Literal["openai", "claude", "gemini"]
+LLMProvider = Literal["openai", "claude", "gemini", "ollama"]
 
 
 @dataclass
@@ -33,7 +33,11 @@ class Config:
         "openai": "gpt-4o",
         "claude": "claude-sonnet-4-20250514",
         "gemini": "gemini-2.0-flash",
+        "ollama": "qwen2.5:7b",
     }
+
+    # Ollama default endpoint
+    OLLAMA_BASE_URL = "http://localhost:11434/v1"
 
     def __init__(
         self,
@@ -73,24 +77,29 @@ class Config:
         openai_base_url = os.getenv("OPENAI_BASE_URL")
         openai_model = os.getenv("OPENAI_MODEL")
 
-        # API keys for each provider (GOOGLE_API_KEY is the new standard for Gemini)
+        # Ollama settings
+        ollama_base_url = os.getenv("OLLAMA_BASE_URL", self.OLLAMA_BASE_URL)
+        ollama_model = os.getenv("OLLAMA_MODEL")
+
+        # API keys for each provider
         api_keys = {
             "openai": openai_api_key,
             "claude": os.getenv("ANTHROPIC_API_KEY"),
             "gemini": os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"),
+            "ollama": "ollama",  # Placeholder, Ollama doesn't require API key
         }
 
-        # Auto-detect provider if not specified
+        # Auto-detect provider if not specified (excludes ollama - must be explicit)
         if provider is None:
             for p in ["openai", "claude", "gemini"]:
-                if api_keys.get(p):
+                if api_keys.get(p) and api_keys.get(p) != "ollama":
                     provider = p
                     break
 
         if provider is None:
             raise ValueError(
                 "No LLM API key found. Set one of: "
-                "OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY"
+                "OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, or use --llm=ollama"
             )
 
         api_key = api_keys.get(provider)
@@ -103,11 +112,18 @@ class Config:
                 model = openai_model
             elif provider == "gemini" and os.getenv("GEMINI_MODEL"):
                 model = os.getenv("GEMINI_MODEL")
+            elif provider == "ollama" and ollama_model:
+                model = ollama_model
             else:
                 model = self.DEFAULT_MODELS.get(provider, "gpt-4o")
 
         # Set base_url for OpenAI-compatible providers
-        base_url = openai_base_url if provider == "openai" else None
+        if provider == "openai":
+            base_url = openai_base_url
+        elif provider == "ollama":
+            base_url = ollama_base_url
+        else:
+            base_url = None
 
         return LLMConfig(
             provider=provider,

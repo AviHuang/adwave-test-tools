@@ -133,7 +133,7 @@ def pytest_addoption(parser):
         "--llm",
         action="store",
         default=None,
-        help="LLM provider: openai, claude, gemini (auto-detect if not specified)",
+        help="LLM provider: openai, claude, gemini, ollama (auto-detect cloud providers if not specified)",
     )
     parser.addoption(
         "--model",
@@ -163,7 +163,7 @@ def pytest_addoption(parser):
         "--slack",
         action="store_true",
         default=False,
-        help="Send report to Slack (requires SLACK_WEBHOOK_URL in .env)",
+        help="Send report to Slack (requires SLACK_BOT_TOKEN and SLACK_CHANNEL in .env)",
     )
 
 
@@ -387,15 +387,17 @@ def pytest_sessionfinish(session, exitstatus):
                 print("Warning: Email requested but SMTP credentials not configured")
                 print("Set SMTP_USER and SMTP_PASSWORD in .env file")
 
-        # Send to Slack if requested
+        # Send to Slack if requested (via Bot Token)
         if session.config.getoption("--slack"):
-            slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL")
-            if slack_webhook_url:
+            slack_bot_token = os.getenv("SLACK_BOT_TOKEN")
+            slack_channel = os.getenv("SLACK_CHANNEL")
+            if slack_bot_token and slack_channel:
                 slack_mention = os.getenv("SLACK_MENTION_ON_FAILURE")
-                print("Sending report to Slack...")
+                print(f"Sending report to Slack channel: {slack_channel}...")
                 success = generator.send_to_slack(
                     report=report,
-                    webhook_url=slack_webhook_url,
+                    bot_token=slack_bot_token,
+                    channel=slack_channel,
                     mention_on_failure=slack_mention,
                 )
                 if success:
@@ -403,5 +405,5 @@ def pytest_sessionfinish(session, exitstatus):
                 else:
                     print("Failed to send Slack report")
             else:
-                print("Warning: Slack requested but SLACK_WEBHOOK_URL not configured")
-                print("Set SLACK_WEBHOOK_URL in .env file")
+                print("Warning: Slack requested but credentials not configured")
+                print("Set SLACK_BOT_TOKEN and SLACK_CHANNEL in .env file")

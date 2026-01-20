@@ -69,15 +69,15 @@ async def test_delete_creatives(browser_agent, config):
     # Extract counts for verification
     before_count, after_count = extract_creative_counts(result)
 
-    # Verify deletion success: after_count should be less than before_count
+    # Strict verification: both counts must be valid
+    # No fallback - agent must output counts in the required format
     expected_after = before_count - len(CREATIVES_TO_DELETE) if before_count >= 0 else -1
 
-    if before_count >= 0 and after_count >= 0:
-        delete_success = after_count < before_count
+    if before_count < 0 or after_count < 0:
+        delete_success = False  # No fallback - counts are required
     else:
-        # Fallback: check for success keywords
-        result_lower = result.lower()
-        delete_success = any(kw in result_lower for kw in ["deleted", "removed", "confirmed"])
+        # Verify after_count < before_count (creatives were deleted)
+        delete_success = after_count < before_count
 
     if not delete_success:
         pytest.fail(

@@ -22,13 +22,16 @@ def extract_creative_counts(result: str) -> tuple[int, int]:
 
 
 def verify_creative_upload(result: str) -> bool:
-    """Verify creative upload by checking count increase."""
+    """Verify creative upload by checking count increase.
+
+    Strict verification: requires valid before/after counts.
+    No fallback - agent must output counts in the required format.
+    """
     before_count, after_count = extract_creative_counts(result)
 
-    # If counts found, verify after > before
-    if before_count >= 0 and after_count >= 0:
-        return after_count > before_count
+    # Strict verification: both counts must be valid
+    if before_count < 0 or after_count < 0:
+        return False  # No fallback - counts are required
 
-    # Fallback: check for success keywords
-    result_lower = result.lower()
-    return "success" in result_lower or "added" in result_lower
+    # Verify after_count > before_count (creative was added)
+    return after_count > before_count

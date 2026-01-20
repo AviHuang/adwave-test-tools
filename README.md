@@ -11,9 +11,10 @@ This repository contains automated tests for verifying AdWave platform functiona
 - **Campaign Tests**: Create campaigns with Push, Pop, Display, Native ad formats
 - **Creative Tests**: Upload creatives for Push, Display, Native formats
 - **Audience Tests**: Create audience segments
-- **Multi-LLM Support**: OpenAI, Claude, Gemini providers
+- **Registration Tests**: Full registration flow with email verification
+- **Multi-LLM Support**: Gemini (recommended), OpenAI, Claude, Ollama (experimental)
 - **HTML Reports**: Detailed test reports with screenshots and checkpoints
-- **Email Reports**: Send reports via email automatically
+- **Slack/Email Reports**: Send reports automatically
 
 ## Test Coverage
 
@@ -27,156 +28,281 @@ This repository contains automated tests for verifying AdWave platform functiona
 
 **Total: 10 tests**
 
-## Requirements
+---
 
-- Python 3.11+
-- LLM API key (OpenAI, Claude, or Gemini)
-- AdWave test account credentials
+## Quick Start
 
-## Local Setup
+### 1. Install Dependencies
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/anthropic-solutions/adwave-test-tools.git
-cd adwave-test-tools
-```
+# Create conda environment
+conda create -n browser-use python=3.11 -y
+conda activate browser-use
 
-2. Create and activate conda environment:
-```bash
-conda create -n adwave-test python=3.11 -y
-conda activate adwave-test
-```
-
-3. Install dependencies:
-```bash
+# Install dependencies
 pip install -r requirements.txt
 playwright install chromium
 ```
 
-4. Configure environment:
+### 2. Configure Environment
+
+Copy the `.env` file provided by your team, or create from template:
+
 ```bash
 cp .env.example .env
-# Edit .env with your credentials and API keys
+# Edit .env with your credentials
 ```
 
-## Running Tests
+### 3. Run Tests
 
-### Run all tests:
 ```bash
-pytest tests/ -v
-```
-
-### Run with visible browser (headed mode):
-```bash
+# Run all tests with Gemini (recommended)
 pytest tests/ -v --headed
-```
 
-### Run with HTML report:
-```bash
-pytest tests/ -v --report
-```
-
-### Run and send report via email:
-```bash
-pytest tests/ -v --report --email=your@email.com
-```
-
-### Run specific test module:
-```bash
-# Run all campaign tests (parametrized)
-pytest tests/test_campaign.py -v --headed
-
-# Run specific campaign format
-pytest "tests/test_campaign.py::test_create_campaign[Campaign_Push]" -v --headed
-
-# Run all creative tests (upload + delete)
+# Run specific test
 pytest tests/test_creative.py -v --headed
-
-# Run specific creative format
-pytest "tests/test_creative.py::test_upload_creative[Upload_Display]" -v --headed
-
-# Run audience test
-pytest tests/test_audience_create.py -v --headed
 ```
 
-### Select LLM provider:
+---
+
+## LLM Provider Configuration
+
+### Gemini API (Recommended)
+
+Gemini is the default and most stable option.
+
+**Configuration (.env):**
 ```bash
-pytest tests/ -v --llm=gemini
-pytest tests/ -v --llm=claude
+GOOGLE_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-3-flash-preview
+```
+
+**Run tests:**
+```bash
+# Auto-detect (uses Gemini if GOOGLE_API_KEY is set)
+pytest tests/ -v --headed
+
+# Explicit
+pytest tests/ -v --headed --llm=gemini
+```
+
+### Ollama Local Model (Experimental)
+
+> ⚠️ **Warning**: Local models have limited support for browser-use's structured output format. Test success rate is lower than cloud APIs.
+
+**Prerequisites:**
+```bash
+# Install Ollama
+# Download from: https://ollama.ai/
+
+# Start Ollama server
+ollama serve
+
+# Pull model
+ollama pull qwen2.5:7b
+```
+
+**Configuration (.env):**
+```bash
+# Optional - defaults shown
+OLLAMA_BASE_URL=http://localhost:11434/v1
+OLLAMA_MODEL=qwen2.5:7b
+```
+
+**Run tests:**
+```bash
+pytest tests/ -v --headed --llm=ollama
+
+# With specific model
+pytest tests/ -v --headed --llm=ollama --model=qwen2.5:7b
+```
+
+**Local Model Limitations:**
+- Cannot reliably produce JSON structured output
+- May output incorrect action formats
+- `sensitive_data` placeholder mechanism may not work (types `{email}` literally)
+- Recommended only for experimentation
+
+### Other Providers
+
+**OpenAI:**
+```bash
+OPENAI_API_KEY=your-openai-key
 pytest tests/ -v --llm=openai
 ```
 
-### Run against staging environment:
+**Claude:**
 ```bash
-pytest tests/ -v --env=staging
+ANTHROPIC_API_KEY=your-anthropic-key
+pytest tests/ -v --llm=claude
 ```
+
+---
+
+## Running Tests
+
+### Basic Commands
+
+```bash
+# Run all tests (headless)
+pytest tests/ -v
+
+# Run with visible browser (headed mode)
+pytest tests/ -v --headed
+
+# Run with HTML report
+pytest tests/ -v --report
+
+# Run with Slack notification
+pytest tests/ -v --report --slack
+```
+
+### Run Specific Tests
+
+```bash
+# Campaign tests
+pytest tests/test_campaign.py -v --headed
+
+# Specific campaign format
+pytest "tests/test_campaign.py::test_create_campaign[Campaign_Push]" -v --headed
+pytest "tests/test_campaign.py::test_create_campaign[Campaign_Display]" -v --headed
+
+# Creative tests
+pytest tests/test_creative.py -v --headed
+
+# Specific creative format
+pytest "tests/test_creative.py::test_upload_creative[Upload_Push]" -v --headed
+pytest "tests/test_creative.py::test_upload_creative[Upload_Display]" -v --headed
+
+# Audience test
+pytest tests/test_audience_create.py -v --headed
+
+# Registration test (requires Gmail config)
+pytest tests/test_registration.py -v --headed
+```
+
+### Command Line Options
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--headed` | Show browser window | `pytest -v --headed` |
+| `--llm=` | Select LLM provider | `--llm=gemini` |
+| `--model=` | Select specific model | `--model=qwen2.5:7b` |
+| `--report` | Generate HTML report | `pytest -v --report` |
+| `--slack` | Send to Slack | `pytest -v --report --slack` |
+| `--email=` | Send email report | `--email=you@example.com` |
+| `--env=` | Test environment | `--env=staging` |
+
+---
 
 ## Project Structure
 
 ```
 adwave-test-tools/
-├── .github/workflows/
-│   └── run-tests.yml           # GitHub Actions workflow
-├── assets/                     # Test images for creative upload
+├── core/                           # Core modules
+│   ├── browser_agent.py            # Browser Use wrapper with LLM configuration
+│   ├── config.py                   # Environment and LLM configuration
+│   ├── gmail_helper.py             # Gmail IMAP for verification codes
+│   ├── prompts.py                  # Task prompts for automation
+│   └── reporter.py                 # HTML/Slack/Email report generator
+│
+├── tests/                          # Test files
+│   ├── conftest.py                 # Pytest fixtures and hooks
+│   ├── test_campaign.py            # Campaign creation tests
+│   ├── test_creative.py            # Creative upload/delete tests
+│   ├── test_audience_create.py     # Audience segment tests
+│   ├── test_registration.py        # Registration with email verification
+│   │
+│   └── helpers/                    # Test helper functions
+│       ├── campaign_helpers.py     # Extract campaign data from results
+│       ├── creative_helpers.py     # Verify creative counts
+│       └── registration_helpers.py # Parse registration results
+│
+├── assets/                         # Test images
 │   ├── icon_192x192.png
 │   ├── display_250x250.png
 │   └── main_492x328.png
-├── core/
-│   ├── __init__.py
-│   ├── browser_agent.py        # Browser Use wrapper
-│   ├── config.py               # Configuration management
-│   ├── gmail_helper.py         # Gmail IMAP helper for verification codes
-│   ├── prompts.py              # Task prompts for automation
-│   └── reporter.py             # HTML report generator
-├── tests/
-│   ├── conftest.py             # Pytest fixtures and hooks
-│   ├── campaign_helpers.py     # Campaign test helpers
-│   ├── creative_helpers.py     # Creative test helpers
-│   ├── registration_helpers.py # Registration test helpers
-│   ├── test_registration.py    # Registration with email verification
-│   ├── test_campaign.py        # Parametrized: Push, Pop, Display, Native
-│   ├── test_creative.py        # Parametrized: Upload (3 formats) + Delete
-│   └── test_audience_create.py # Audience segment creation
-├── reports/                    # Generated test reports
-├── .env.example
-├── .gitignore
-├── pytest.ini
+│
+├── reports/                        # Generated HTML reports
+├── .env.example                    # Environment template
 ├── requirements.txt
-├── ISSUES.md                   # Known issues documentation
 └── README.md
 ```
 
-## Configuration
+## Helper Modules
 
-### Environment Variables
+### `core/gmail_helper.py`
+Gmail IMAP helper for registration tests. Uses Gmail's `+` alias feature to generate unlimited test email addresses:
+- `yourname@gmail.com` → Main inbox
+- `yourname+test123@gmail.com` → Also delivers to main inbox
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ADWAVE_EMAIL` | Yes | AdWave test account email |
-| `ADWAVE_PASSWORD` | Yes | AdWave test account password |
-| `GOOGLE_API_KEY` | One of | Gemini API key |
-| `ANTHROPIC_API_KEY` | these | Claude API key |
-| `OPENAI_API_KEY` | three | OpenAI API key |
-| `GMAIL_ADDRESS` | For registration | Gmail address for IMAP (receives verification codes) |
-| `GMAIL_APP_PASSWORD` | For registration | Gmail App Password for IMAP access |
-| `SMTP_USER` | No | Email sender address |
-| `SMTP_PASSWORD` | No | Email password/app password |
+Extracts verification codes automatically via IMAP.
 
-### GitHub Secrets (for CI/CD)
+### `tests/creative_helpers.py`
+Parses agent output to extract creative counts:
+```python
+extract_creative_counts(result)  # Returns (before_count, after_count)
+verify_creative_upload(result)   # Returns True if count increased
+```
 
-| Secret | Description |
-|--------|-------------|
-| `GOOGLE_API_KEY` | Gemini API key |
-| `ADWAVE_EMAIL` | Test account email |
-| `ADWAVE_PASSWORD` | Test account password |
+### `tests/campaign_helpers.py`
+Extracts campaign list from agent output:
+```python
+extract_campaign_list(result)           # Returns list of campaign names
+verify_campaign_in_list(result, name)   # Returns True if found
+```
 
-## Test Reports
+### `tests/registration_helpers.py`
+Parses registration test results:
+```python
+extract_registration_email(result)   # Get email used
+verify_registration_success(result)  # Check if registration succeeded
+verify_login_success(result)         # Check if login succeeded
+```
 
-Reports are generated in the `reports/` directory with:
-- Test summary (pass/fail counts, duration)
-- Checkpoints for each test step
-- Screenshots on success/failure
-- AI-powered error analysis
+---
+
+## Environment Variables
+
+### Required
+
+| Variable | Description |
+|----------|-------------|
+| `ADWAVE_EMAIL` | AdWave test account email |
+| `ADWAVE_PASSWORD` | AdWave test account password |
+| `GOOGLE_API_KEY` | Gemini API key (or other LLM key) |
+
+### Optional - Email Reports
+
+| Variable | Description |
+|----------|-------------|
+| `SMTP_SERVER` | SMTP server (default: smtp.gmail.com) |
+| `SMTP_PORT` | SMTP port (default: 465) |
+| `SMTP_USER` | Email sender address |
+| `SMTP_PASSWORD` | Email password or app password |
+
+### Optional - Slack Reports
+
+| Variable | Description |
+|----------|-------------|
+| `SLACK_BOT_TOKEN` | Slack Bot Token (xoxb-...) |
+| `SLACK_CHANNEL` | Channel ID or User ID for DM |
+
+### Optional - Registration Tests
+
+| Variable | Description |
+|----------|-------------|
+| `GMAIL_ADDRESS` | Gmail address (or reuse SMTP_USER) |
+| `GMAIL_APP_PASSWORD` | Gmail App Password (or reuse SMTP_PASSWORD) |
+
+### Optional - Ollama Local Model
+
+| Variable | Description |
+|----------|-------------|
+| `OLLAMA_BASE_URL` | Ollama API endpoint (default: http://localhost:11434/v1) |
+| `OLLAMA_MODEL` | Model name (default: qwen2.5:7b) |
+
+---
 
 ## GitHub Actions
 
@@ -185,102 +311,57 @@ Reports are generated in the `reports/` directory with:
 1. Go to Actions tab
 2. Select "AdWave Tests" workflow
 3. Click "Run workflow"
-4. Configure options:
+4. Configure:
    - **Environment**: `production` or `staging`
    - **LLM provider**: `gemini`, `claude`, or `openai`
-   - **Test scope**: Select specific tests to run
-   - **Send email**: Optional email address for report
+   - **Test scope**: Select tests to run
+   - **Send email**: Optional email for report
 5. Click "Run workflow"
 
 ### Test Scope Options
 
 | Scope | Tests | Description |
 |-------|-------|-------------|
-| `all` | 10 | Run all tests (default) |
-| `registration` | 1 | Registration with email verification |
-| `campaign` | 4 | All campaign creation tests |
-| `creative` | 4 | All creative tests (upload + delete) |
-| `audience` | 1 | Audience creation test |
+| `all` | 10 | All tests |
+| `registration` | 1 | Registration flow |
+| `campaign` | 4 | All campaign tests |
+| `creative` | 4 | All creative tests |
+| `audience` | 1 | Audience creation |
 | `campaign_push` | 1 | Push campaign only |
-| `campaign_pop` | 1 | Pop campaign only |
-| `campaign_display` | 1 | Display campaign only |
-| `campaign_native` | 1 | Native campaign only |
-| `creative_push` | 1 | Push creative upload only |
-| `creative_display` | 1 | Display creative upload only |
-| `creative_native` | 1 | Native creative upload only |
-| `creative_delete` | 1 | Delete all test creatives |
+| `creative_display` | 1 | Display creative only |
 
-### Automatic Trigger (Cross-Repository)
+---
 
-Tests can be triggered automatically when AdWave main repository has new commits.
+## Troubleshooting
 
-**Default behavior**: Runs **all tests** with `gemini` provider against `production` environment.
+### Gemini API Errors
 
-#### Setup Steps
-
-1. Create a Personal Access Token (PAT) with `repo` scope
-2. Add the PAT as `TEST_DISPATCH_TOKEN` secret in AdWave main repository
-3. Add this workflow file to AdWave repo at `.github/workflows/trigger-tests.yml`:
-
-```yaml
-name: Trigger E2E Tests
-
-on:
-  push:
-    branches: [main, develop]
-
-jobs:
-  trigger-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger test repository
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.TEST_DISPATCH_TOKEN }}
-          repository: AviHuang/adwave-test-tools
-          event-type: adwave-deploy
-          client-payload: |
-            {
-              "environment": "production",
-              "llm": "gemini",
-              "scope": "all",
-              "email": ""
-            }
 ```
-
-#### Customizing Auto-Trigger
-
-Modify `client-payload` to customize automatic test runs:
-
-```yaml
-# Run only campaign tests
-client-payload: '{"scope": "campaign"}'
-
-# Run with email notification
-client-payload: '{"scope": "all", "email": "team@example.com"}'
-
-# Run specific test
-client-payload: '{"scope": "campaign_push"}'
+Error: API key not valid
 ```
+→ Check `GOOGLE_API_KEY` in `.env`
 
-### Required GitHub Secrets
+### Ollama Connection Errors
 
-Configure these in repository Settings → Secrets and variables → Actions:
+```
+Error: Connection refused
+```
+→ Ensure Ollama is running: `ollama serve`
 
-| Secret | Required | Description |
-|--------|----------|-------------|
-| `GOOGLE_API_KEY` | Yes* | Gemini API key |
-| `ANTHROPIC_API_KEY` | Yes* | Claude API key |
-| `OPENAI_API_KEY` | Yes* | OpenAI API key |
-| `ADWAVE_EMAIL` | Yes | Test account email |
-| `ADWAVE_PASSWORD` | Yes | Test account password |
-| `SMTP_SERVER` | No | SMTP server (default: smtp.gmail.com) |
-| `SMTP_PORT` | No | SMTP port (default: 465) |
-| `SMTP_USER` | No | Email sender address |
-| `SMTP_PASSWORD` | No | Email password/app password |
+### Ollama JSON Errors
 
-*At least one LLM API key is required based on selected provider.
+```
+validation errors for AgentOutput
+action: Field required
+```
+→ This is a known limitation of local models. They struggle with structured JSON output. Use Gemini instead for reliable tests.
+
+### Browser Not Visible
+
+→ Add `--headed` flag: `pytest -v --headed`
+
+---
 
 ## License
 
-Internal use only - Anthropic Solutions
+Internal use only - RevoSurge

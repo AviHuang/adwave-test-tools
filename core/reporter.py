@@ -655,20 +655,40 @@ See attached HTML report for details.
 
         return text
 
+    # =========================================================================
+    # Slack Webhook Method (DEPRECATED - due to app quantity limits)
+    # =========================================================================
+    # def send_to_slack_webhook(
+    #     self,
+    #     report: TestReport,
+    #     webhook_url: str,
+    #     channel: Optional[str] = None,
+    #     mention_on_failure: Optional[str] = None,
+    # ) -> bool:
+    #     """Send test report to Slack via Incoming Webhook (deprecated)."""
+    #     payload: Dict[str, Any] = {
+    #         "blocks": self.generate_slack_blocks(report),
+    #         "text": self.generate_slack_text(report),
+    #     }
+    #     if channel:
+    #         payload["channel"] = channel
+    #     # ... webhook implementation ...
+
     def send_to_slack(
         self,
         report: TestReport,
-        webhook_url: str,
-        channel: Optional[str] = None,
+        bot_token: str,
+        channel: str,
         mention_on_failure: Optional[str] = None,
     ) -> bool:
         """
-        Send test report to Slack via Incoming Webhook.
+        Send test report to Slack via Bot Token (chat.postMessage API).
 
         Args:
             report: Test report data
-            webhook_url: Slack Incoming Webhook URL
-            channel: Optional channel override (if webhook allows)
+            bot_token: Slack Bot Token (xoxb-...)
+            channel: Channel name, channel ID, or user ID for DM
+                    e.g., "#general", "C0XXXXXXX", "U0XXXXXXX"
             mention_on_failure: User/group to mention when tests fail
                                e.g., "@channel", "@here", "<@U12345678>"
 
@@ -678,19 +698,16 @@ See attached HTML report for details.
         Example:
             generator.send_to_slack(
                 report,
-                webhook_url="https://hooks.slack.com/services/T00/B00/XXX",
-                mention_on_failure="@channel"
+                bot_token="xoxb-...",
+                channel="U0XXXXXXX",  # User ID for DM
             )
         """
         # Build message payload
         payload: Dict[str, Any] = {
+            "channel": channel,
             "blocks": self.generate_slack_blocks(report),
             "text": self.generate_slack_text(report),  # Fallback for notifications
         }
-
-        # Add channel override if specified
-        if channel:
-            payload["channel"] = channel
 
         # Add mention if tests failed
         if mention_on_failure and report.failed_tests > 0:
@@ -704,22 +721,27 @@ See attached HTML report for details.
             # Insert mention after header
             payload["blocks"].insert(1, mention_block)
 
-        # Send to Slack
+        # Send to Slack via chat.postMessage API
         try:
             data = json.dumps(payload).encode("utf-8")
             request = urllib.request.Request(
-                webhook_url,
+                "https://slack.com/api/chat.postMessage",
                 data=data,
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Authorization": f"Bearer {bot_token}",
+                },
                 method="POST"
             )
 
             with urllib.request.urlopen(request, timeout=30) as response:
-                if response.status == 200:
-                    print("Report sent to Slack successfully")
+                response_data = json.loads(response.read().decode("utf-8"))
+                if response_data.get("ok"):
+                    print(f"Report sent to Slack channel: {channel}")
                     return True
                 else:
-                    print(f"Slack returned status {response.status}")
+                    error = response_data.get("error", "Unknown error")
+                    print(f"Slack API error: {error}")
                     return False
 
         except urllib.error.HTTPError as e:
