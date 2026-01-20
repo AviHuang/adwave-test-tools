@@ -297,40 +297,53 @@ CHECKPOINT: Should proceed to upload area
 
 UPLOAD_CREATIVE_PUSH = """
 STEP {step}: Upload Push Creative Images
-IMPORTANT: Upload ONLY ONE set of images. Do NOT repeat or upload multiple times!
 
-- Find the 192x192 Icon upload area and use upload_file action to upload: {icon_path}
-- Find the 492x328 Main Image upload area and use upload_file action to upload: {main_path}
-- Wait for both images to finish uploading
-- After both uploads complete, click the "upload" button outside the upload areas (secondary confirmation)
-- Wait for upload confirmation
+CRITICAL RULES:
+1. Use upload_file action EXACTLY TWICE in total (once for icon, once for main image)
+2. NEVER call upload_file more than twice
+3. After uploading, only click buttons - do NOT upload again
+
+ACTIONS:
+- Use upload_file to upload icon: {icon_path}
+- Use upload_file to upload main image: {main_path}
+- Wait for both images to appear in the upload areas
 - Click the "Add" button at bottom right
 
-WARNING: After clicking "Add", do NOT upload again. One upload is sufficient.
+STOP: After clicking "Add", the upload is COMPLETE. Do NOT use upload_file again.
 CHECKPOINT: Creative should be added successfully
 """
 
 UPLOAD_CREATIVE_DISPLAY = """
 STEP {step}: Upload Display Creative Image
-IMPORTANT: Upload ONLY ONE image. Do NOT repeat or upload multiple times!
 
-- Find the 250x250 Main Image upload area and use upload_file action to upload: {image_path}
-- Wait for image to finish uploading
+CRITICAL RULES:
+1. Use upload_file action EXACTLY ONCE
+2. NEVER call upload_file more than once
+3. After uploading, only click buttons - do NOT upload again
+
+ACTIONS:
+- Use upload_file to upload image: {image_path}
+- Wait for image to appear in the upload area
 - Click the "Add" button at bottom right
 
-WARNING: After clicking "Add", do NOT upload again. One upload is sufficient.
+STOP: After clicking "Add", the upload is COMPLETE. Do NOT use upload_file again.
 CHECKPOINT: Creative should be added successfully
 """
 
 UPLOAD_CREATIVE_NATIVE = """
 STEP {step}: Upload Native Creative Image
-IMPORTANT: Upload ONLY ONE image. Do NOT repeat or upload multiple times!
 
-- Find the 492x328 Main Image upload area and use upload_file action to upload: {image_path}
-- Wait for image to finish uploading
+CRITICAL RULES:
+1. Use upload_file action EXACTLY ONCE
+2. NEVER call upload_file more than once
+3. After uploading, only click buttons - do NOT upload again
+
+ACTIONS:
+- Use upload_file to upload image: {image_path}
+- Wait for image to appear in the upload area
 - Click the "Add" button at bottom right
 
-WARNING: After clicking "Add", do NOT upload again. One upload is sufficient.
+STOP: After clicking "Add", the upload is COMPLETE. Do NOT use upload_file again.
 CHECKPOINT: Creative should be added successfully
 """
 
